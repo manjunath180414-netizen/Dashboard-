@@ -236,198 +236,206 @@ font-size:12px;
 <div class="toast" id="toast">Number Copied</div>
 
 <script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
 
 const firebaseConfig = {
-apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
-authDomain: "dashboard-bd51c.firebaseapp.com",
-projectId: "dashboard-bd51c",
-storageBucket: "dashboard-bd51c.firebasestorage.app",
-messagingSenderId: "689809644516",
-appId: "1:689809644516:web:75d6051b300983afb545f1"
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
 };
 
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth();
-const db=firebase.firestore();
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 let currentUID="";
-let currentFilter="all";
-let selectedDate=null;
-
-document.getElementById("todayDate").innerText=
-new Date().toDateString();
-
-document.getElementById("datePicker").addEventListener("change",function(){
-selectedDate=this.value;
-loadLeads();
-});
 
 auth.onAuthStateChanged(user=>{
-if(!user){window.location.href="index.html";}
-else{
-currentUID=user.uid;
-document.getElementById("welcomeText").innerText="Welcome, "+user.displayName;
-loadLeads();
-}
-});
+  if(!user){
+    window.location.href="index.html";
+  } else {
+    currentUID=user.uid;
 
-function setFilter(type){
-currentFilter=type;
-document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
-event.currentTarget.classList.add("active");
-loadLeads();
-}
+    db.collection("users").doc(currentUID).get().then(doc=>{
+      if(!doc.exists || doc.data().role!=="agent"){
+        window.location.href="index.html";
+      } else {
+        document.querySelector(".welcome").innerText="Welcome, "+doc.data().name;
+        loadLeads();
+      }
+    });
+  }
+});
 
 function loadLeads(){
 
-db.collection("leads")
-.where("assignedTo","==",currentUID)
-.onSnapshot(snapshot=>{
+  db.collection("leads")
+  .where("assignedTo","==",currentUID)
+  .onSnapshot(snapshot=>{
 
-let assignedToday=0, calledToday=0, pendingToday=0;
-let interested=0, notInterested=0, followUp=0, joined=0;
+    leadTable.innerHTML="";
+    let leadsData=[];
+    snapshot.forEach(doc=>{
+      leadsData.push({...doc.data(), id:doc.id});
+    });
 
-let html="";
-const today=new Date();
-today.setHours(0,0,0,0);
-
-snapshot.forEach(doc=>{
-const data=doc.data();
-let createdDate=data.createdAt?.toDate?.() || null;
-let updatedDate=data.updatedAt ? new Date(data.updatedAt) : null;
-
-if(createdDate && createdDate>=today) assignedToday++;
-if(updatedDate && updatedDate>=today) calledToday++;
-if(!data.status || data.status==="New") pendingToday++;
-
-if(data.status==="Interested") interested++;
-if(data.status==="Not Interested") notInterested++;
-if(data.status==="Follow Up") followUp++;
-if(data.status==="Joined") joined++;
-
-if(selectedDate){
-let d=new Date(selectedDate);
-d.setHours(0,0,0,0);
-if(!createdDate || createdDate.toDateString()!==d.toDateString()) return;
+    leadsData.forEach((lead,index)=>createRow(lead,index));
+    updateCounts(leadsData);
+  });
 }
 
-if(currentFilter==="assignedToday" && !(createdDate>=today)) return;
-if(currentFilter==="calledToday" && !(updatedDate>=today)) return;
-if(currentFilter==="pendingToday" && data.status!=="New") return;
-if(["Interested","Not Interested","Follow Up","Joined"].includes(currentFilter)
-&& data.status!==currentFilter) return;
+function updateCounts(leads){
+let assigned=leads.length;
+let called=0,pending=0,interested=0,notInterested=0,followUp=0,joined=0;
 
-let cardClass="lead-card";
-if(data.status==="Interested") cardClass+=" glow-green";
-if(data.status==="Joined") cardClass+=" glow-teal";
-if(data.status==="Switched Off") cardClass+=" glow-orange";
-if(data.status==="Wrong Number") cardClass+=" glow-red";
+leads.forEach(l=>{
+if(l.status!=="New") called++;
+if(l.status==="New") pending++;
+if(l.status==="Interested") interested++;
+if(l.status==="Not Interested") notInterested++;
+if(l.status==="Follow Up") followUp++;
+if(l.status==="Joined") joined++;
+});
 
-if(data.followUpTime){
-let diff=data.followUpTime-new Date().getTime();
-if(diff<=1800000 && diff>0){
-cardClass+=" glow-red blink";
+assignedCount.innerText=assigned;
+calledCount.innerText=called;
+pendingCount.innerText=pending;
+interestedCount.innerText=interested;
+notInterestedCount.innerText=notInterested;
+followUpCount.innerText=followUp;
+joinedCount.innerText=joined;
 }
+
+function formatTime(seconds){
+let h=Math.floor(seconds/3600);
+let m=Math.floor((seconds%3600)/60);
+let s=seconds%60;
+return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
-html+=`
-<div class="${cardClass}">
-<div class="top-row">
-<div>${data.studentName}</div>
-<div class="phone" onclick="copyNumber('${data.phone}')">${data.phone}</div>
-</div>
+function startTimer(cell,row,targetTime){
+let interval=setInterval(()=>{
+let remaining=Math.floor((targetTime-Date.now())/1000);
 
-<select onchange="handleStatus('${doc.id}',this.value)">
-<option ${data.status==="New"?"selected":""}>New</option>
-<option ${data.status==="Interested"?"selected":""}>Interested</option>
-<option ${data.status==="Not Interested"?"selected":""}>Not Interested</option>
-<option ${data.status==="Follow Up"?"selected":""}>Follow Up</option>
-<option ${data.status==="Switched Off"?"selected":""}>Switched Off</option>
-<option ${data.status==="Wrong Number"?"selected":""}>Wrong Number</option>
-<option ${data.status==="Joined"?"selected":""}>Joined</option>
+if(remaining>0){
+cell.innerHTML="Call in "+formatTime(remaining);
+
+if(remaining<=1800){
+cell.classList.add("warning");
+}
+}else{
+cell.innerHTML="Missed Follow Up";
+cell.classList.add("missed");
+row.classList.add("wrong");
+clearInterval(interval);
+}
+},1000);
+}
+
+function createRow(lead,index){
+
+let row=document.createElement("tr");
+
+row.innerHTML=`
+<td class="status-strip"></td>
+<td>${lead.studentName}</td>
+<td class="phone">${lead.phone}</td>
+<td>
+<select>
+<option ${lead.status==="New"?"selected":""}>New</option>
+<option ${lead.status==="Interested"?"selected":""}>Interested</option>
+<option ${lead.status==="Not Interested"?"selected":""}>Not Interested</option>
+<option ${lead.status==="Follow Up"?"selected":""}>Follow Up</option>
+<option ${lead.status==="Switch Off"?"selected":""}>Switch Off</option>
+<option ${lead.status==="Wrong Number"?"selected":""}>Wrong Number</option>
+<option ${lead.status==="Joined"?"selected":""}>Joined</option>
 </select>
-
-<textarea placeholder="Remarks (Compulsory)" id="note-${doc.id}">${data.notes||""}</textarea>
-
-${data.status==="Interested"||data.status==="Follow Up" ? 
-`<input type="time" id="time-${doc.id}" value="${data.followUpDisplay||""}">`:""}
-
-${data.status==="Joined" ? 
-`<input type="number" id="amt-${doc.id}" value="${data.amount||""}" placeholder="Amount Paid">`:""}
-
-<div class="error" id="error-${doc.id}"></div>
-</div>
+</td>
+<td class="dynamic">${lead.amount?("₹"+lead.amount):"--"}</td>
 `;
-});
 
-document.getElementById("leadsContainer").innerHTML=html;
+let select=row.querySelector("select");
+let dynamic=row.querySelector(".dynamic");
 
-document.getElementById("assignedToday").innerText=assignedToday;
-document.getElementById("calledToday").innerText=calledToday;
-document.getElementById("pendingToday").innerText=pendingToday;
-document.getElementById("interestedCount").innerText=interested;
-document.getElementById("notInterestedCount").innerText=notInterested;
-document.getElementById("followUpCount").innerText=followUp;
-document.getElementById("joinedCount").innerText=joined;
+select.addEventListener("change",function(){
 
-});
+row.className="";
+dynamic.innerHTML="--";
+
+let newStatus=this.value;
+
+if(newStatus==="Interested"){
+row.classList.add("interested");
 }
 
-function handleStatus(id,status){
-
-let note=document.getElementById("note-"+id).value.trim();
-let timeInput=document.getElementById("time-"+id);
-let amountInput=document.getElementById("amt-"+id);
-let errorBox=document.getElementById("error-"+id);
-errorBox.innerText="";
-
-if(!note){
-errorBox.innerText="Remarks required";
-return;
-}
-
-if((status==="Interested"||status==="Follow Up") && (!timeInput||!timeInput.value)){
-errorBox.innerText="Follow-up time required";
-return;
-}
-
-if(status==="Joined" && (!amountInput||!amountInput.value)){
-errorBox.innerText="Amount required";
-return;
-}
-
-let updateData={status:status,notes:note,updatedAt:new Date()};
-
-if(status==="Interested"||status==="Follow Up"){
+if(newStatus==="Follow Up"){
+row.classList.add("interested");
+let time=prompt("Enter follow up time (HH:MM 24hr format)");
+if(time){
 let now=new Date();
-let parts=timeInput.value.split(":");
+let parts=time.split(":");
 now.setHours(parts[0]);
 now.setMinutes(parts[1]);
-updateData.followUpTime=now.getTime();
-updateData.followUpDisplay=timeInput.value;
+db.collection("leads").doc(lead.id).update({
+status:newStatus,
+followUpTime:now.getTime()
+});
+startTimer(dynamic,row,now.getTime());
+}
+return;
 }
 
-if(status==="Switched Off"){
-updateData.followUpTime=new Date().getTime()+8*60*60*1000;
+if(newStatus==="Switch Off"){
+row.classList.add("switch");
+let target=Date.now()+8*60*60*1000;
+db.collection("leads").doc(lead.id).update({
+status:newStatus,
+followUpTime:target
+});
+startTimer(dynamic,row,target);
+return;
 }
 
-if(status==="Joined"){
-updateData.amount=parseInt(amountInput.value);
+if(newStatus==="Joined"){
+row.classList.add("joined");
+let amount=prompt("Enter Amount Paid:");
+if(amount){
+db.collection("leads").doc(lead.id).update({
+status:newStatus,
+amount:parseInt(amount)
+});
+dynamic.innerHTML="₹"+amount;
+}
+return;
 }
 
-db.collection("leads").doc(id).update(updateData);
+if(newStatus==="Wrong Number"){
+row.classList.add("wrong");
+db.collection("leads").doc(lead.id).update({
+status:newStatus
+});
+return;
 }
 
-function copyNumber(phone){
-navigator.clipboard.writeText(phone);
-let toast=document.getElementById("toast");
-toast.style.display="block";
-setTimeout(()=>{toast.style.display="none";},1200);
+db.collection("leads").doc(lead.id).update({
+status:newStatus
+});
+
+});
+
+leadTable.appendChild(row);
 }
-  function toggleLead(id){
-let el=document.getElementById("expand-"+id);
-el.style.display = el.style.display==="block" ? "none" : "block";
-}
+
+</script>
+
+
 
 
 </script>
