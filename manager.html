@@ -4,7 +4,6 @@
   <title>Manager Dashboard - HIS CRM</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Firebase CDN -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -31,40 +30,23 @@
 
     .cards{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-      gap:15px;
-      margin-bottom:30px;
+      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+      gap:10px;
+      margin-bottom:20px;
     }
 
     .card{
       background:#1e293b;
-      padding:20px;
-      border-radius:10px;
+      padding:15px;
+      border-radius:8px;
       text-align:center;
-    }
-
-    input, select{
-      width:100%;
-      padding:10px;
-      margin:8px 0;
-      border-radius:5px;
-      border:none;
-    }
-
-    button{
-      padding:8px 15px;
-      border:none;
-      border-radius:5px;
-      cursor:pointer;
-      background:#2563eb;
-      color:white;
     }
 
     table{
       width:100%;
       border-collapse:collapse;
+      margin-top:15px;
       background:#1e293b;
-      margin-top:20px;
     }
 
     th,td{
@@ -77,49 +59,55 @@
       background:#111827;
     }
 
-    .section{
-      margin-bottom:40px;
+    input,select{
+      padding:8px;
+      margin:5px;
+      border-radius:5px;
+      border:none;
     }
+
+    button{
+      padding:8px 12px;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+      background:#2563eb;
+      color:white;
+      margin:5px;
+    }
+
+    .section{
+      margin-bottom:30px;
+    }
+
   </style>
 </head>
 
 <body>
 
 <header>
-  <h2>Manager Dashboard</h2>
+  <h3>Manager Dashboard</h3>
   <button onclick="logout()">Logout</button>
 </header>
 
 <div class="container">
 
-  <!-- TOP STATS -->
+  <!-- STATS -->
   <div class="cards">
-    <div class="card">
-      <h3>Total Leads</h3>
-      <h2 id="totalLeads">0</h2>
-    </div>
-    <div class="card">
-      <h3>Interested</h3>
-      <h2 id="interested">0</h2>
-    </div>
-    <div class="card">
-      <h3>Joined</h3>
-      <h2 id="joined">0</h2>
-    </div>
+    <div class="card">Total Leads<br><span id="total">0</span></div>
+    <div class="card">Unassigned<br><span id="unassigned">0</span></div>
+    <div class="card">Interested<br><span id="interested">0</span></div>
+    <div class="card">Joined<br><span id="joined">0</span></div>
+    <div class="card">Revenue<br><span id="revenue">0</span></div>
   </div>
 
-  <!-- ADD LEAD SECTION -->
+  <!-- ADD LEAD -->
   <div class="section">
-    <h3>Add New Lead</h3>
-    <input type="text" id="studentName" placeholder="Student Name">
-    <input type="text" id="phone" placeholder="Phone Number">
-    <input type="text" id="course" placeholder="Course (SSLC/KCET/NEET)">
-    
-    <select id="agentSelect">
-      <option value="">Assign Agent</option>
-    </select>
-
-    <button onclick="addLead()">Add Lead</button>
+    <h3>Add Lead</h3>
+    <input type="text" id="name" placeholder="Student Name">
+    <input type="text" id="phone" placeholder="Phone">
+    <input type="text" id="course" placeholder="Course">
+    <button onclick="addLead()">Add</button>
   </div>
 
   <!-- AGENT PERFORMANCE -->
@@ -132,9 +120,36 @@
           <th>Total Leads</th>
           <th>Interested</th>
           <th>Joined</th>
+          <th>Revenue</th>
+          <th>Edit Name</th>
         </tr>
       </thead>
       <tbody id="agentTable"></tbody>
+    </table>
+  </div>
+
+  <!-- BULK ASSIGN -->
+  <div class="section">
+    <h3>Bulk Assign Leads</h3>
+    <select id="assignAgent"></select>
+    <button onclick="bulkAssign()">Assign Selected</button>
+  </div>
+
+  <!-- LEADS TABLE -->
+  <div class="section">
+    <h3>All Leads</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Select</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Agent</th>
+          <th>Status</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody id="leadTable"></tbody>
     </table>
   </div>
 
@@ -152,87 +167,51 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentManagerUID="";
+let selectedLeads=[];
 
-
-// Protect Route
 auth.onAuthStateChanged(user=>{
   if(!user){
     window.location.href="index.html";
   }else{
-    db.collection("users").doc(user.uid).get()
-    .then(doc=>{
-        if(doc.data().role!=="manager"){
-            alert("Access Denied");
-            window.location.href="index.html";
-        }else{
-            currentManagerUID=user.uid;
-            loadDashboard();
-            loadAgents();
-        }
-    });
+    loadStats();
+    loadAgents();
+    loadLeads();
   }
 });
 
-
-// Load Stats
-function loadDashboard(){
-  db.collection("leads")
-  .where("managerId","==",currentManagerUID)
-  .onSnapshot(snapshot=>{
-
-    let total=snapshot.size;
-    let interested=0;
-    let joined=0;
+function loadStats(){
+  db.collection("leads").onSnapshot(snapshot=>{
+    let total=0, unassigned=0, interested=0, joined=0, revenue=0;
 
     snapshot.forEach(doc=>{
       const data=doc.data();
+      total++;
+      if(!data.assignedTo) unassigned++;
       if(data.status==="Interested") interested++;
-      if(data.status==="Joined") joined++;
+      if(data.status==="Joined"){
+        joined++;
+        revenue += data.amount || 0;
+      }
     });
 
-    document.getElementById("totalLeads").innerText=total;
+    document.getElementById("total").innerText=total;
+    document.getElementById("unassigned").innerText=unassigned;
     document.getElementById("interested").innerText=interested;
     document.getElementById("joined").innerText=joined;
-
-  });
-
-  loadAgentPerformance();
-}
-
-
-// Load Agents Dropdown
-function loadAgents(){
-  db.collection("users")
-  .where("role","==","agent")
-  .where("managerId","==",currentManagerUID)
-  .onSnapshot(snapshot=>{
-
-    let html='<option value="">Assign Agent</option>';
-
-    snapshot.forEach(doc=>{
-      html+=`<option value="${doc.id}">${doc.data().name}</option>`;
-    });
-
-    document.getElementById("agentSelect").innerHTML=html;
+    document.getElementById("revenue").innerText="₹"+revenue;
   });
 }
 
-
-// Add Lead
 function addLead(){
-
-  const name=document.getElementById("studentName").value;
+  const name=document.getElementById("name").value;
   const phone=document.getElementById("phone").value;
   const course=document.getElementById("course").value;
-  const agent=document.getElementById("agentSelect").value;
 
   if(!name || !phone){
-    alert("Fill all required fields");
+    alert("Fill required fields");
     return;
   }
 
@@ -240,33 +219,29 @@ function addLead(){
     studentName:name,
     phone:phone,
     course:course,
-    managerId:currentManagerUID,
-    assignedTo:agent || null,
     status:"New",
-    createdAt:firebase.firestore.FieldValue.serverTimestamp()
-  })
-  .then(()=>{
-    alert("Lead Added Successfully");
-    document.getElementById("studentName").value="";
-    document.getElementById("phone").value="";
-    document.getElementById("course").value="";
+    assignedTo:null,
+    createdAt:new Date()
   });
+
+  document.getElementById("name").value="";
+  document.getElementById("phone").value="";
+  document.getElementById("course").value="";
 }
 
-
-// Agent Performance
-function loadAgentPerformance(){
-
+function loadAgents(){
   db.collection("users")
   .where("role","==","agent")
-  .where("managerId","==",currentManagerUID)
   .onSnapshot(snapshot=>{
 
     let html="";
+    let dropdown="";
 
-    snapshot.forEach(userDoc=>{
-      const agentId=userDoc.id;
-      const agentName=userDoc.data().name;
+    snapshot.forEach(doc=>{
+      const agentId=doc.id;
+      const name=doc.data().name;
+
+      dropdown+=`<option value="${agentId}">${name}</option>`;
 
       db.collection("leads")
       .where("assignedTo","==",agentId)
@@ -276,33 +251,93 @@ function loadAgentPerformance(){
         let total=leadSnap.size;
         let interested=0;
         let joined=0;
+        let revenue=0;
 
         leadSnap.forEach(lead=>{
           const data=lead.data();
           if(data.status==="Interested") interested++;
-          if(data.status==="Joined") joined++;
+          if(data.status==="Joined"){
+            joined++;
+            revenue += data.amount || 0;
+          }
         });
 
         html+=`
           <tr>
-            <td>${agentName}</td>
+            <td>${name}</td>
             <td>${total}</td>
             <td>${interested}</td>
             <td>${joined}</td>
+            <td>₹${revenue}</td>
+            <td><button onclick="editName('${agentId}')">Edit</button></td>
           </tr>
         `;
 
         document.getElementById("agentTable").innerHTML=html;
-
       });
-
     });
+
+    document.getElementById("assignAgent").innerHTML=dropdown;
 
   });
 }
 
+function loadLeads(){
+  db.collection("leads").onSnapshot(snapshot=>{
+    let html="";
+    selectedLeads=[];
 
-// Logout
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+      html+=`
+        <tr>
+          <td><input type="checkbox" onchange="toggleSelect('${doc.id}',this)"></td>
+          <td>${data.studentName}</td>
+          <td>${data.phone}</td>
+          <td>${data.assignedTo || "Unassigned"}</td>
+          <td>${data.status}</td>
+          <td>${data.amount || 0}</td>
+        </tr>
+      `;
+    });
+
+    document.getElementById("leadTable").innerHTML=html;
+  });
+}
+
+function toggleSelect(id,checkbox){
+  if(checkbox.checked){
+    selectedLeads.push(id);
+  }else{
+    selectedLeads=selectedLeads.filter(l=>l!==id);
+  }
+}
+
+function bulkAssign(){
+  const agent=document.getElementById("assignAgent").value;
+  if(!agent){
+    alert("Select agent");
+    return;
+  }
+
+  selectedLeads.forEach(id=>{
+    db.collection("leads").doc(id).update({
+      assignedTo:agent
+    });
+  });
+
+  alert("Assigned Successfully");
+}
+
+function editName(agentId){
+  let newName=prompt("Enter new name:");
+  if(!newName) return;
+
+  db.collection("users").doc(agentId).update({
+    name:newName
+  });
+}
+
 function logout(){
   auth.signOut().then(()=>{
     window.location.href="index.html";
