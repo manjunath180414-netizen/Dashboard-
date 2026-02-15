@@ -181,6 +181,7 @@ font-weight:600;
 </div>
 
            <script>
+<script>
 
 const firebaseConfig = {
 apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
@@ -197,26 +198,18 @@ const db = firebase.firestore();
 
 let currentUID="";
 let allLeads=[];
+let currentFilter="All";
+let missedLeads=[];
 
-/* AUTH */
 auth.onAuthStateChanged(user=>{
 if(!user){
 window.location.href="index.html";
 }else{
 currentUID=user.uid;
-
-db.collection("users").doc(currentUID).get().then(doc=>{
-if(!doc.exists || doc.data().role!=="agent"){
-window.location.href="index.html";
-}else{
-document.querySelector(".welcome").innerText="Welcome, "+doc.data().name;
 loadLeads();
 }
 });
-}
-});
 
-/* LOAD LEADS */
 function loadLeads(){
 db.collection("leads")
 .where("assignedTo","==",currentUID)
@@ -227,18 +220,74 @@ snapshot.forEach(doc=>{
 allLeads.push({...doc.data(), id:doc.id});
 });
 
+checkMissedLeads();
 renderLeads();
 updateCounts();
 
 });
 }
 
-/* RENDER TABLE */
+/* MISSED FOLLOW UP CHECK */
+function checkMissedLeads(){
+
+missedLeads=[];
+let now=Date.now();
+
+allLeads.forEach(l=>{
+if(l.followUpTime && l.followUpTime <= now && l.status==="Follow Up"){
+missedLeads.push(l);
+}
+});
+
+createMissedBanner();
+}
+
+function createMissedBanner(){
+
+let existing=document.getElementById("missedBanner");
+if(existing) existing.remove();
+
+if(missedLeads.length>0){
+
+let banner=document.createElement("div");
+banner.id="missedBanner";
+banner.innerHTML=`⚠ ${missedLeads.length} Leads Missed Follow Up - CLICK TO VIEW`;
+banner.style.background="#b91c1c";
+banner.style.color="white";
+banner.style.padding="10px";
+banner.style.textAlign="center";
+banner.style.fontWeight="600";
+banner.style.animation="blinkBanner 0.5s infinite";
+
+banner.onclick=()=>{
+currentFilter="Missed";
+renderLeads();
+};
+
+document.body.insertBefore(banner, document.body.firstChild);
+
+let style=document.createElement("style");
+style.innerHTML=`
+@keyframes blinkBanner{
+50%{opacity:0.3;}
+}
+`;
+document.head.appendChild(style);
+}
+}
+
+/* RENDER */
 function renderLeads(){
 
 leadTable.innerHTML="";
 
-allLeads.forEach((lead,index)=>createRow(lead,index));
+let displayLeads=allLeads;
+
+if(currentFilter==="Missed"){
+displayLeads=missedLeads;
+}
+
+displayLeads.forEach(createRow);
 
 }
 
@@ -266,38 +315,31 @@ followUpCount.innerText=followUp;
 joinedCount.innerText=joined;
 }
 
-/* TIMER FORMAT */
-function formatTime(seconds){
-let h=Math.floor(seconds/3600);
-let m=Math.floor((seconds%3600)/60);
-let s=seconds%60;
-return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-}
-
 /* TIMER */
-function startTimer(cell,row,targetTime){
+function startTimer(cell,lead){
 
 let interval=setInterval(()=>{
-let remaining=Math.floor((targetTime-Date.now())/1000);
+
+let remaining=Math.floor((lead.followUpTime-Date.now())/1000);
 
 if(remaining>0){
-cell.innerHTML="Call in "+formatTime(remaining);
+cell.innerHTML="Call in "+remaining+" sec";
 }else{
 cell.innerHTML="Missed Follow Up";
-cell.classList.add("missed");
-row.style.background="#7f1d1d";
+cell.style.color="red";
 clearInterval(interval);
+checkMissedLeads();
 }
 },1000);
 }
 
 /* CREATE ROW */
-function createRow(lead,index){
+function createRow(lead){
 
 let row=document.createElement("tr");
 
 row.innerHTML=`
-<td class="status-strip"></td>
+<td></td>
 <td>${lead.studentName}</td>
 <td class="phone">${lead.phone}</td>
 <td>
@@ -311,52 +353,52 @@ row.innerHTML=`
 <option ${lead.status==="Joined"?"selected":""}>Joined</option>
 </select>
 </td>
-<td class="dynamic">${lead.amount?("₹"+lead.amount):"--"}</td>
+<td class="dynamic">${lead.amount?("₹"+lead.amount):""}</td>
 `;
 
 let select=row.querySelector("select");
 let dynamic=row.querySelector(".dynamic");
 
 /* PHONE COPY */
-row.querySelector(".phone").addEventListener("click",()=>{
+row.querySelector(".phone").onclick=()=>{
 navigator.clipboard.writeText(lead.phone);
 alert("Number Copied");
-});
+};
 
-/* RESTORE FOLLOWUP TIMER */
-if(lead.followUpTime){
-startTimer(dynamic,row,lead.followUpTime);
+/* RESTORE TIMER */
+if(lead.status==="Follow Up" && lead.followUpTime){
+startTimer(dynamic,lead);
 }
 
 /* STATUS CHANGE */
-select.addEventListener("change",function(){
+select.onchange=function(){
 
 let newStatus=this.value;
-row.style.background="";
-row.className="";
-dynamic.innerHTML="";
+
+/* RESET COLOR */
+select.style.background="#0f172a";
 
 /* INTERESTED */
 if(newStatus==="Interested"){
-row.style.borderLeft="6px solid #22c55e";
+select.style.background="#22c55e";
 db.collection("leads").doc(lead.id).update({status:newStatus});
 }
 
 /* NOT INTERESTED */
 if(newStatus==="Not Interested"){
-row.style.borderLeft="6px solid #ef4444";
+select.style.background="#ef4444";
 db.collection("leads").doc(lead.id).update({status:newStatus});
 }
 
-/* FOLLOW UP WITH CLOCK */
+/* FOLLOW UP */
 if(newStatus==="Follow Up"){
 
 let timeInput=document.createElement("input");
 timeInput.type="time";
-timeInput.required=true;
+dynamic.innerHTML="";
 dynamic.appendChild(timeInput);
 
-timeInput.addEventListener("change",function(){
+timeInput.onchange=function(){
 
 if(!this.value){
 alert("Follow up time required");
@@ -366,46 +408,48 @@ return;
 
 let now=new Date();
 let parts=this.value.split(":");
-now.setHours(parts[0]);
-now.setMinutes(parts[1]);
+let selected=new Date();
 
-let target=now.getTime();
+selected.setHours(parts[0]);
+selected.setMinutes(parts[1]);
+selected.setSeconds(0);
+
+/* FIX FOR TOMORROW */
+if(selected.getTime() <= now.getTime()){
+selected.setDate(selected.getDate()+1);
+}
+
+let target=selected.getTime();
 
 db.collection("leads").doc(lead.id).update({
 status:newStatus,
 followUpTime:target
 });
 
-row.style.borderLeft="6px solid #22c55e";
-startTimer(dynamic,row,target);
+startTimer(dynamic,lead);
 
-});
+};
+
 return;
 }
 
-/* SWITCH OFF AUTO 8 HOURS */
+/* SWITCH OFF */
 if(newStatus==="Switch Off"){
-
 let target=Date.now()+8*60*60*1000;
 
 db.collection("leads").doc(lead.id).update({
 status:newStatus,
 followUpTime:target
 });
-
-row.style.borderLeft="6px solid #991b1b";
-startTimer(dynamic,row,target);
-return;
 }
 
-/* WRONG NUMBER FULL RED */
+/* WRONG NUMBER */
 if(newStatus==="Wrong Number"){
-row.style.background="#7f1d1d";
+select.style.background="#7f1d1d";
 db.collection("leads").doc(lead.id).update({status:newStatus});
-return;
 }
 
-/* JOINED FORCE AMOUNT */
+/* JOINED */
 if(newStatus==="Joined"){
 
 let amount="";
@@ -422,19 +466,17 @@ status:newStatus,
 amount:parseInt(amount)
 });
 
-row.style.borderLeft="6px solid #06b6d4";
 dynamic.innerHTML="₹"+amount;
-return;
 }
 
-db.collection("leads").doc(lead.id).update({status:newStatus});
-
-});
+};
 
 leadTable.appendChild(row);
 }
 
 </script>
+
+
 
 </body>
 </html>
