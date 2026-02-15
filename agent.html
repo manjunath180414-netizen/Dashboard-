@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Agent Dashboard - HIS CRM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <style>
+    body{
+      margin:0;
+      font-family:Arial;
+      background:#0f172a;
+      color:white;
+    }
+
+    header{
+      background:#1e293b;
+      padding:15px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .container{
+      padding:20px;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+      gap:10px;
+      margin-bottom:20px;
+    }
+
+    .card{
+      background:#1e293b;
+      padding:15px;
+      border-radius:8px;
+      text-align:center;
+    }
+
+    .filters button{
+      margin:5px;
+      padding:8px 12px;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+      background:#2563eb;
+      color:white;
+    }
+
+    .lead-card{
+      background:#1e293b;
+      padding:15px;
+      margin-bottom:15px;
+      border-radius:8px;
+    }
+
+    .blink{
+      animation: blink 1s infinite;
+      border:2px solid red;
+    }
+
+    @keyframes blink{
+      0%{opacity:1;}
+      50%{opacity:0.5;}
+      100%{opacity:1;}
+    }
+
+    .status-btn{
+      margin:3px;
+      padding:5px 8px;
+      border:none;
+      border-radius:4px;
+      cursor:pointer;
+    }
+
+    .copy-phone{
+      cursor:pointer;
+      color:#22c55e;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h3 id="welcome">Welcome</h3>
+  <button onclick="logout()">Logout</button>
+</header>
+
+<div class="container">
+
+  <!-- STATS -->
+  <div class="cards">
+    <div class="card">Total<br><span id="total">0</span></div>
+    <div class="card">Interested<br><span id="interested">0</span></div>
+    <div class="card">Call Back<br><span id="callback">0</span></div>
+    <div class="card">Joined<br><span id="joined">0</span></div>
+    <div class="card">Switched Off<br><span id="switched">0</span></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <button onclick="setFilter('All')">All</button>
+    <button onclick="setFilter('Interested')">Interested</button>
+    <button onclick="setFilter('Call Back')">Call Back</button>
+    <button onclick="setFilter('Joined')">Joined</button>
+    <button onclick="setFilter('Switched Off')">Switched Off</button>
+  </div>
+
+  <!-- LEADS -->
+  <div id="leadList"></div>
+
+</div>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUID="";
+let currentFilter="All";
+
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    window.location.href="index.html";
+  }else{
+    currentUID=user.uid;
+    document.getElementById("welcome").innerText="Welcome, "+user.displayName;
+    loadLeads();
+  }
+});
+
+function loadLeads(){
+  db.collection("leads")
+  .where("assignedTo","==",currentUID)
+  .onSnapshot(snapshot=>{
+
+    let html="";
+    let total=0, interested=0, callback=0, joined=0, switchedOff=0;
+
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+      total++;
+
+      if(data.status==="Interested") interested++;
+      if(data.status==="Call Back") callback++;
+      if(data.status==="Joined") joined++;
+      if(data.status==="Switched Off") switchedOff++;
+
+      if(currentFilter==="All" || data.status===currentFilter){
+
+        let blinkClass="";
+        if(data.callbackTime){
+          const now=new Date().getTime();
+          const diff=data.callbackTime-now;
+          if(diff<=1800000 && diff>0){
+            blinkClass="blink";
+          }
+        }
+
+        html+=`
+        <div class="lead-card ${blinkClass}">
+          <b>${data.studentName}</b><br>
+          <span class="copy-phone" onclick="copyPhone('${data.phone}')">
+            ${data.phone} (Click to Copy)
+          </span><br>
+          Course: ${data.course || ''}<br>
+          Status: ${data.status || 'New'}<br>
+
+          <button class="status-btn" onclick="updateStatus('${doc.id}','Interested')">Interested</button>
+          <button class="status-btn" onclick="setCallback('${doc.id}')">Call Back</button>
+          <button class="status-btn" onclick="updateStatus('${doc.id}','Switched Off')">Switched Off</button>
+          <button class="status-btn" onclick="markJoined('${doc.id}')">Joined</button>
+        </div>
+        `;
+      }
+
+    });
+
+    document.getElementById("leadList").innerHTML=html;
+    document.getElementById("total").innerText=total;
+    document.getElementById("interested").innerText=interested;
+    document.getElementById("callback").innerText=callback;
+    document.getElementById("joined").innerText=joined;
+    document.getElementById("switched").innerText=switchedOff;
+
+  });
+}
+
+function setFilter(status){
+  currentFilter=status;
+  loadLeads();
+}
+
+function updateStatus(id,status){
+  db.collection("leads").doc(id).update({
+    status:status,
+    updatedAt:new Date()
+  });
+}
+
+function setCallback(id){
+  let minutes=prompt("Call back after how many minutes?");
+  if(!minutes) return;
+
+  let time=new Date().getTime()+minutes*60000;
+
+  db.collection("leads").doc(id).update({
+    status:"Call Back",
+    callbackTime:time,
+    updatedAt:new Date()
+  });
+}
+
+function markJoined(id){
+  let amount=prompt("Enter Amount Paid:");
+  if(!amount) return;
+
+  db.collection("leads").doc(id).update({
+    status:"Joined",
+    amount:parseInt(amount),
+    updatedAt:new Date()
+  });
+}
+
+function copyPhone(phone){
+  navigator.clipboard.writeText(phone);
+  alert("Phone Copied: "+phone);
+}
+
+function logout(){
+  auth.signOut().then(()=>{
+    window.location.href="index.html";
+  });
+}
+
+</script>
+
+</body>
+</html>
+
