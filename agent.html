@@ -1,1 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HIS Academy - Agent Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <style>
+    body{
+      margin:0;
+      font-family:'Segoe UI', sans-serif;
+      background:linear-gradient(135deg,#0f172a,#1e293b);
+      color:white;
+    }
+
+    .container{
+      padding:20px;
+    }
+
+    .header{
+      margin-bottom:25px;
+    }
+
+    .header h1{
+      margin:0;
+      font-size:22px;
+      font-weight:600;
+    }
+
+    .welcome{
+      margin-top:6px;
+      font-size:14px;
+      color:#94a3b8;
+    }
+
+    .stats-row{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .stats-row-4{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+    }
+
+    .card{
+      background:rgba(255,255,255,0.05);
+      backdrop-filter:blur(12px);
+      border-radius:16px;
+      padding:18px;
+      text-align:center;
+      box-shadow:0 4px 20px rgba(0,0,0,0.4);
+      transition:0.3s;
+    }
+
+    .card:hover{
+      transform:translateY(-3px);
+    }
+
+    .card h2{
+      margin:0;
+      font-size:22px;
+      font-weight:700;
+    }
+
+    .card p{
+      margin:5px 0 0 0;
+      font-size:12px;
+      color:#cbd5e1;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>HIS Academy</h1>
+    <div class="welcome" id="welcomeText">Welcome</div>
+  </div>
+
+  <!-- ROW 1: Today Summary -->
+  <div class="stats-row">
+    <div class="card">
+      <h2 id="assignedToday">0</h2>
+      <p>Assigned Today</p>
+    </div>
+
+    <div class="card">
+      <h2 id="calledToday">0</h2>
+      <p>Called Today</p>
+    </div>
+
+    <div class="card">
+      <h2 id="pendingToday">0</h2>
+      <p>Pending Today</p>
+    </div>
+  </div>
+
+  <!-- ROW 2: Status Summary -->
+  <div class="stats-row-4">
+    <div class="card">
+      <h2 id="interestedCount">0</h2>
+      <p>Interested</p>
+    </div>
+
+    <div class="card">
+      <h2 id="notInterestedCount">0</h2>
+      <p>Not Interested</p>
+    </div>
+
+    <div class="card">
+      <h2 id="followUpCount">0</h2>
+      <p>Follow Up</p>
+    </div>
+
+    <div class="card">
+      <h2 id="joinedCount">0</h2>
+      <p>Joined</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    window.location.href="index.html";
+  } else {
+    document.getElementById("welcomeText").innerText =
+      "Welcome, " + user.displayName;
+
+    loadStats(user.uid);
+  }
+});
+
+function loadStats(uid){
+
+  db.collection("leads")
+  .where("assignedTo","==",uid)
+  .onSnapshot(snapshot=>{
+
+    let assignedToday = 0;
+    let calledToday = 0;
+    let pendingToday = 0;
+
+    let interested = 0;
+    let notInterested = 0;
+    let followUp = 0;
+    let joined = 0;
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    snapshot.forEach(doc=>{
+      const data = doc.data();
+
+      // Assigned Today
+      if(data.createdAt && data.createdAt.toDate){
+        const created = data.createdAt.toDate();
+        if(created >= today) assignedToday++;
+      }
+
+      // Called Today (if updated today)
+      if(data.updatedAt){
+        const updated = new Date(data.updatedAt);
+        if(updated >= today) calledToday++;
+      }
+
+      // Pending
+      if(!data.status || data.status === "New") pendingToday++;
+
+      // Status counts
+      if(data.status === "Interested") interested++;
+      if(data.status === "Not Interested") notInterested++;
+      if(data.status === "Follow Up") followUp++;
+      if(data.status === "Joined") joined++;
+    });
+
+    document.getElementById("assignedToday").innerText = assignedToday;
+    document.getElementById("calledToday").innerText = calledToday;
+    document.getElementById("pendingToday").innerText = pendingToday;
+
+    document.getElementById("interestedCount").innerText = interested;
+    document.getElementById("notInterestedCount").innerText = notInterested;
+    document.getElementById("followUpCount").innerText = followUp;
+    document.getElementById("joinedCount").innerText = joined;
+
+  });
+}
+
+</script>
+
+</body>
+</html>
 
