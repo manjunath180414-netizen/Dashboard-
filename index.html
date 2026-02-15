@@ -83,16 +83,19 @@ function login(){
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
+  function login(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
   auth.signInWithEmailAndPassword(email,password)
   .then(userCredential=>{
-      const user = userCredential.user;
+      alert("Login Success");
+  })
+  .catch(error=>{
+      alert("Error: " + error.message);
+  })
+}
 
-      db.collection("users").doc(user.uid).get()
-      .then(doc=>{
-          if(!doc.exists){
-              document.getElementById("error").innerText="Role not assigned.";
-              return;
-          }
 
           const role = doc.data().role;
 
