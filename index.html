@@ -107,29 +107,33 @@ function googleLogin(){
 // Save user in Firestore
 function saveUserToDatabase(user){
 
-  db.collection("users").doc(user.uid).get()
+  const userRef = db.collection("users").doc(user.uid);
+
+  userRef.get()
   .then(doc=>{
 
       if(!doc.exists){
-          // New User → Default Role = agent
-          db.collection("users").doc(user.uid).set({
-              name: user.displayName,
+          return userRef.set({
+              name: user.displayName || "",
               email: user.email,
-              role: "agent",
-              createdAt: new Date()
-          })
-          .then(()=>{
-              document.getElementById("status").innerText =
-              "New user created as Agent. You can change role in Firestore.";
-              redirectBasedOnRole("agent");
+              role: "agent", // default role
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
       }
-      else{
-          const role = doc.data().role;
-          redirectBasedOnRole(role);
-      }
+  })
+  .then(()=>{
+      return userRef.get();
+  })
+  .then(doc=>{
+      const role = doc.data().role;
+      redirectBasedOnRole(role);
+  })
+  .catch(error=>{
+      console.log("Firestore Error:", error);
+      document.getElementById("status").innerText = error.message;
   });
 }
+
 
 // Redirect
 function redirectBasedOnRole(role){
