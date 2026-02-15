@@ -201,14 +201,40 @@ let allLeads=[];
 let currentFilter="All";
 let missedLeads=[];
 
-auth.onAuthStateChanged(user=>{
-if(!user){
-window.location.href="index.html";
-}else{
-currentUID=user.uid;
-loadLeads();
-}
+auth.onAuthStateChanged(async (user)=>{
+  if(!user){
+    window.location.href="index.html";
+    return;
+  }
+
+  currentUID = user.uid;
+
+  try{
+    const doc = await db.collection("users").doc(currentUID).get();
+
+    if(!doc.exists){
+      alert("User not registered in system");
+      return;
+    }
+
+    const data = doc.data();
+
+    if(data.role !== "agent"){
+      alert("Access denied");
+      return;
+    }
+
+    document.querySelector(".welcome").innerText = 
+      "Welcome, " + data.name;
+
+    loadLeads();  // 🔥 now safe to load leads
+
+  }catch(error){
+    console.error(error);
+    alert("Error loading user profile");
+  }
 });
+
 
 function loadLeads(){
 db.collection("leads")
