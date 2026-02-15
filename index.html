@@ -1,31 +1,116 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HIS Academy CRM Login</title>
-<link rel="stylesheet" href="css/style.css">
+  <title>HIS CRM Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+  <style>
+    body {
+      margin:0;
+      font-family: Arial;
+      background:#0f172a;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      color:white;
+    }
+
+    .box {
+      background:#1e293b;
+      padding:30px;
+      border-radius:10px;
+      width:300px;
+      text-align:center;
+    }
+
+    input {
+      width:100%;
+      padding:10px;
+      margin:10px 0;
+      border-radius:5px;
+      border:none;
+    }
+
+    button {
+      width:100%;
+      padding:10px;
+      background:#2563eb;
+      color:white;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+    }
+
+    #error {
+      color:red;
+      margin-top:10px;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="login-container">
-    <div class="login-card">
-        <h2>HIS Academy CRM</h2>
-        <p class="subtitle">Login to continue</p>
-
-        <input type="email" id="email" placeholder="Email Address">
-        <input type="password" id="password" placeholder="Password">
-
-        <button onclick="loginUser()" id="loginBtn">Login</button>
-
-        <p class="error" id="errorMsg"></p>
-    </div>
+<div class="box">
+  <h2>HIS CRM Login</h2>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <p id="error"></p>
 </div>
 
-<script src="js/firebase.js"></script>
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1",
+  measurementId: "G-5GWRNP2F9K"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function login(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  auth.signInWithEmailAndPassword(email,password)
+  .then(userCredential=>{
+      const user = userCredential.user;
+
+      db.collection("users").doc(user.uid).get()
+      .then(doc=>{
+          if(!doc.exists){
+              document.getElementById("error").innerText="Role not assigned.";
+              return;
+          }
+
+          const role = doc.data().role;
+
+          if(role==="owner"){
+              window.location.href="owner.html";
+          }else if(role==="manager"){
+              window.location.href="manager.html";
+          }else if(role==="agent"){
+              window.location.href="agent.html";
+          }
+      })
+  })
+  .catch(error=>{
+      document.getElementById("error").innerText=error.message;
+  })
+}
+
+</script>
+
 </body>
 </html>
