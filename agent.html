@@ -219,14 +219,13 @@ select.onchange = async function(){
 
 let status = this.value;
 
-/* RESET COLORS */
+/* reset */
 this.style.background = "#0f172a";
 row.style.background = "";
 
 /* INTERESTED */
 if(status === "Interested"){
     this.style.background = "#22c55e";
-    await db.collection("leads").doc(lead.id).update({status});
 }
 
 /* FOLLOW UP */
@@ -242,7 +241,7 @@ if(status === "Follow Up"){
 
         if(!this.value){
             alert("Follow up time required");
-            select.value="New";
+            select.value = "New";
             return;
         }
 
@@ -260,7 +259,7 @@ if(status === "Follow Up"){
 
         await db.collection("leads").doc(lead.id).update({
             status,
-            followUpTime:selected.getTime()
+            followUpTime: selected.getTime()
         });
     };
 
@@ -269,43 +268,47 @@ if(status === "Follow Up"){
 
 /* NOT INTERESTED */
 if(status === "Not Interested"){
-    this.style.background = "#f87171"; // light red
-    await db.collection("leads").doc(lead.id).update({status});
+    this.style.background = "#f87171";
 }
 
 /* SWITCH OFF */
 if(status === "Switch Off"){
-    await db.collection("leads").doc(lead.id).update({status});
+    // no color
 }
 
-/* WRONG NUMBER → FULL ROW RED */
+/* WRONG NUMBER */
 if(status === "Wrong Number"){
     row.style.background = "#7f1d1d";
-    await db.collection("leads").doc(lead.id).update({status});
 }
 
-/* JOINED → FULL ROW GREEN */
+/* JOINED */
 if(status === "Joined"){
 
-    let amount="";
+    let amount = "";
     while(!amount){
         amount = prompt("Enter Amount (Required)");
         if(amount === null){
-            select.value="New";
+            select.value = "New";
             return;
         }
     }
 
     row.style.background = "#065f46";
 
+    dynamic.innerText = "₹" + amount;
+
     await db.collection("leads").doc(lead.id).update({
         status,
-        amount:parseInt(amount)
+        amount: parseInt(amount)
     });
 
-    dynamic.innerText = "₹"+amount;
+    return;
 }
+
+/* default update */
+await db.collection("leads").doc(lead.id).update({status});
 };
+
 
 
 function updateCounts(){
