@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Agent Dashboard - HIS Academy</title>
+  <title>HIS Academy - Agent Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -11,33 +12,17 @@
   <style>
     body{
       margin:0;
-      font-family:'Segoe UI', sans-serif;
-      background: linear-gradient(135deg,#0f172a,#1e293b);
+      font-family:Segoe UI, sans-serif;
+      background:linear-gradient(135deg,#0f172a,#1e293b);
       color:white;
-      min-height:100vh;
     }
 
     header{
-      background: rgba(30,41,59,0.8);
-      backdrop-filter: blur(10px);
-      padding:18px;
+      padding:20px;
+      background:rgba(30,41,59,0.9);
       display:flex;
       justify-content:space-between;
       align-items:center;
-      border-bottom:1px solid rgba(255,255,255,0.1);
-      position:sticky;
-      top:0;
-      z-index:10;
-    }
-
-    .title{
-      font-size:18px;
-      font-weight:bold;
-    }
-
-    .welcome{
-      font-size:14px;
-      opacity:0.8;
     }
 
     .container{
@@ -46,48 +31,40 @@
 
     .stats{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+      grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
       gap:15px;
       margin-bottom:25px;
     }
 
-    .stat-box{
-      background: rgba(255,255,255,0.05);
-      padding:20px;
-      border-radius:15px;
+    .box{
+      background:rgba(255,255,255,0.05);
+      padding:18px;
+      border-radius:12px;
       text-align:center;
       cursor:pointer;
       transition:0.3s;
-      box-shadow:0 4px 20px rgba(0,0,0,0.4);
     }
 
-    .stat-box:hover{
-      transform:translateY(-4px);
+    .box:hover{
       background:#2563eb;
     }
 
-    .stat-number{
+    .box span{
+      display:block;
       font-size:22px;
       font-weight:bold;
-      margin-top:8px;
     }
 
-    .lead-card{
-      background: rgba(255,255,255,0.05);
-      padding:18px;
-      border-radius:15px;
+    .lead{
+      background:rgba(255,255,255,0.05);
+      padding:15px;
+      border-radius:12px;
       margin-bottom:15px;
-      box-shadow:0 4px 20px rgba(0,0,0,0.4);
-      transition:0.3s;
-    }
-
-    .lead-card:hover{
-      transform:scale(1.01);
     }
 
     .blink{
-      border:2px solid #ef4444;
-      animation: blink 1s infinite;
+      border:2px solid red;
+      animation:blink 1s infinite;
     }
 
     @keyframes blink{
@@ -96,27 +73,24 @@
       100%{opacity:1;}
     }
 
+    button{
+      padding:6px 10px;
+      border:none;
+      border-radius:6px;
+      margin:5px 5px 0 0;
+      cursor:pointer;
+    }
+
+    .green{background:#22c55e;}
+    .yellow{background:#facc15;color:black;}
+    .red{background:#ef4444;}
+    .blue{background:#3b82f6;}
+
     .phone{
       color:#22c55e;
       cursor:pointer;
       font-weight:bold;
     }
-
-    .buttons button{
-      margin-top:8px;
-      margin-right:6px;
-      padding:6px 10px;
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-      font-size:12px;
-      color:white;
-    }
-
-    .btn-int{ background:#22c55e; }
-    .btn-call{ background:#facc15; color:black; }
-    .btn-sw{ background:#ef4444; }
-    .btn-join{ background:#3b82f6; }
 
     .toast{
       position:fixed;
@@ -124,10 +98,9 @@
       left:50%;
       transform:translateX(-50%);
       background:#22c55e;
-      padding:10px 20px;
+      padding:8px 15px;
       border-radius:20px;
       display:none;
-      font-size:14px;
     }
 
   </style>
@@ -137,44 +110,33 @@
 
 <header>
   <div>
-    <div class="title">HIS Academy - Agent Dashboard</div>
-    <div class="welcome" id="welcomeText"></div>
+    <h3>HIS Academy - Agent Dashboard</h3>
+    <div id="welcome"></div>
   </div>
   <button onclick="logout()">Logout</button>
 </header>
 
 <div class="container">
 
-  <!-- STAT BOXES -->
   <div class="stats">
-    <div class="stat-box" onclick="setFilter('All')">
-      Total Leads
-      <div class="stat-number" id="totalCount">0</div>
+    <div class="box" onclick="setFilter('All')">
+      <span id="total">0</span>Total
     </div>
-
-    <div class="stat-box" onclick="setFilter('Interested')">
-      Interested
-      <div class="stat-number" id="intCount">0</div>
+    <div class="box" onclick="setFilter('Interested')">
+      <span id="interested">0</span>Interested
     </div>
-
-    <div class="stat-box" onclick="setFilter('Call Back')">
-      Call Back
-      <div class="stat-number" id="callCount">0</div>
+    <div class="box" onclick="setFilter('Call Back')">
+      <span id="callback">0</span>Call Back
     </div>
-
-    <div class="stat-box" onclick="setFilter('Joined')">
-      Joined
-      <div class="stat-number" id="joinCount">0</div>
+    <div class="box" onclick="setFilter('Joined')">
+      <span id="joined">0</span>Joined
     </div>
-
-    <div class="stat-box" onclick="setFilter('Switched Off')">
-      Switched Off
-      <div class="stat-number" id="swCount">0</div>
+    <div class="box" onclick="setFilter('Switched Off')">
+      <span id="switched">0</span>Switched Off
     </div>
   </div>
 
-  <!-- LEADS -->
-  <div id="leadContainer"></div>
+  <div id="leadList"></div>
 
 </div>
 
@@ -192,19 +154,19 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUID="";
 let currentFilter="All";
 
-auth.onAuthStateChanged(user=>{
+auth.onAuthStateChanged(function(user){
   if(!user){
     window.location.href="index.html";
-  }else{
+  } else {
     currentUID=user.uid;
-    document.getElementById("welcomeText").innerText =
-      "Welcome, "+user.displayName+" 👋";
+    document.getElementById("welcome").innerText="Welcome, "+(user.displayName || "");
     loadLeads();
   }
 });
@@ -212,59 +174,57 @@ auth.onAuthStateChanged(user=>{
 function loadLeads(){
   db.collection("leads")
   .where("assignedTo","==",currentUID)
-  .onSnapshot(snapshot=>{
+  .onSnapshot(function(snapshot){
 
-    let total=0,int=0,call=0,join=0,sw=0;
+    let total=0, interested=0, callback=0, joined=0, switched=0;
     let html="";
 
-    snapshot.forEach(doc=>{
+    snapshot.forEach(function(doc){
+
       const data=doc.data();
       total++;
 
-      if(data.status==="Interested") int++;
-      if(data.status==="Call Back") call++;
-      if(data.status==="Joined") join++;
-      if(data.status==="Switched Off") sw++;
+      if(data.status==="Interested") interested++;
+      if(data.status==="Call Back") callback++;
+      if(data.status==="Joined") joined++;
+      if(data.status==="Switched Off") switched++;
 
       if(currentFilter==="All" || data.status===currentFilter){
 
-        let blink="";
+        let blinkClass="";
         if(data.callbackTime){
-          const now=Date.now();
-          const diff=data.callbackTime-now;
-          if(diff<=1800000 && diff>0){
-            blink="blink";
+          let now=new Date().getTime();
+          if(data.callbackTime-now <= 1800000 && data.callbackTime-now > 0){
+            blinkClass="blink";
           }
         }
 
         html+=`
-        <div class="lead-card ${blink}">
-          <b>${data.studentName}</b><br>
-          <span class="phone" onclick="copyNumber('${data.phone}')">
-            ${data.phone}
-          </span><br>
-          Course: ${data.course || ''}<br>
-          Status: ${data.status || 'New'}<br>
-          ${data.amount ? 'Amount Collected: ₹'+data.amount : ''}
+          <div class="lead ${blinkClass}">
+            <b>${data.studentName}</b><br>
+            <span class="phone" onclick="copyPhone('${data.phone}')">
+              ${data.phone}
+            </span><br>
+            Course: ${data.course || ""}<br>
+            Status: ${data.status || "New"}<br>
+            ${data.amount ? "Amount: ₹"+data.amount+"<br>" : ""}
 
-          <div class="buttons">
-            <button class="btn-int" onclick="updateStatus('${doc.id}','Interested')">Interested</button>
-            <button class="btn-call" onclick="setCallback('${doc.id}')">Call Back</button>
-            <button class="btn-sw" onclick="updateStatus('${doc.id}','Switched Off')">Switched Off</button>
-            <button class="btn-join" onclick="markJoined('${doc.id}')">Joined</button>
+            <button class="green" onclick="updateStatus('${doc.id}','Interested')">Interested</button>
+            <button class="yellow" onclick="setCallback('${doc.id}')">Call Back</button>
+            <button class="red" onclick="updateStatus('${doc.id}','Switched Off')">Switched Off</button>
+            <button class="blue" onclick="markJoined('${doc.id}')">Joined</button>
           </div>
-        </div>
         `;
       }
 
     });
 
-    document.getElementById("leadContainer").innerHTML=html;
-    document.getElementById("totalCount").innerText=total;
-    document.getElementById("intCount").innerText=int;
-    document.getElementById("callCount").innerText=call;
-    document.getElementById("joinCount").innerText=join;
-    document.getElementById("swCount").innerText=sw;
+    document.getElementById("leadList").innerHTML=html;
+    document.getElementById("total").innerText=total;
+    document.getElementById("interested").innerText=interested;
+    document.getElementById("callback").innerText=callback;
+    document.getElementById("joined").innerText=joined;
+    document.getElementById("switched").innerText=switched;
 
   });
 }
@@ -282,12 +242,14 @@ function updateStatus(id,status){
 }
 
 function setCallback(id){
-  let mins=prompt("Call back after how many minutes?");
-  if(!mins) return;
+  let minutes=prompt("Call back after how many minutes?");
+  if(!minutes) return;
+
+  let time=new Date().getTime()+minutes*60000;
 
   db.collection("leads").doc(id).update({
     status:"Call Back",
-    callbackTime: Date.now() + (mins*60000),
+    callbackTime:time,
     updatedAt:new Date()
   });
 }
@@ -303,15 +265,15 @@ function markJoined(id){
   });
 }
 
-function copyNumber(number){
-  navigator.clipboard.writeText(number);
-  const toast=document.getElementById("toast");
+function copyPhone(phone){
+  navigator.clipboard.writeText(phone);
+  let toast=document.getElementById("toast");
   toast.style.display="block";
-  setTimeout(()=>{ toast.style.display="none"; },1500);
+  setTimeout(()=>{toast.style.display="none";},1500);
 }
 
 function logout(){
-  auth.signOut().then(()=>{
+  auth.signOut().then(function(){
     window.location.href="index.html";
   });
 }
