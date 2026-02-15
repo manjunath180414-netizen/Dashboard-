@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HIS Academy CRM Login</title>
+<link rel="stylesheet" href="css/style.css">
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+<body>
+
+<div class="login-container">
+    <div class="login-card">
+        <h2>HIS Academy CRM</h2>
+        <p class="subtitle">Login to continue</p>
+
+        <input type="email" id="email" placeholder="Email Address">
+        <input type="password" id="password" placeholder="Password">
+
+        <button onclick="loginUser()" id="loginBtn">Login</button>
+
+        <p class="error" id="errorMsg"></p>
+    </div>
+</div>
+
+<script src="js/firebase.js"></script>
+</body>
+</html>
