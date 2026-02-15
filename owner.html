@@ -1,111 +1,119 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Owner Dashboard</title>
+  <title>Owner Dashboard - HIS CRM</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Firebase -->
+  <!-- Firebase CDN -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <style>
-    body {
+    body{
       margin:0;
-      font-family: Arial;
+      font-family:Arial;
       background:#0f172a;
       color:white;
     }
 
-    .header {
+    header{
       background:#1e293b;
-      padding:15px 25px;
+      padding:15px;
       display:flex;
       justify-content:space-between;
       align-items:center;
     }
 
-    .header h2 {
-      margin:0;
+    .container{
+      padding:20px;
     }
 
-    .logout-btn {
-      background:#ef4444;
-      padding:8px 15px;
-      border:none;
-      color:white;
-      border-radius:5px;
-      cursor:pointer;
-    }
-
-    .dashboard {
-      padding:30px;
-    }
-
-    .card-container {
+    .cards{
       display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap:20px;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:15px;
+      margin-bottom:30px;
+    }
+
+    .card{
+      background:#1e293b;
+      padding:20px;
+      border-radius:10px;
+      text-align:center;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#1e293b;
       margin-top:20px;
     }
 
-    .card {
-      background:#1e293b;
-      padding:25px;
-      border-radius:10px;
+    th,td{
+      padding:12px;
+      border-bottom:1px solid #334155;
       text-align:center;
-      box-shadow:0 0 15px rgba(0,0,0,0.3);
     }
 
-    .card h3 {
-      margin:0;
-      font-size:18px;
-      color:#94a3b8;
+    th{
+      background:#111827;
     }
 
-    .card p {
-      font-size:28px;
-      margin:10px 0 0 0;
-      font-weight:bold;
+    button{
+      padding:8px 15px;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+      background:#ef4444;
+      color:white;
     }
-
   </style>
 </head>
 
 <body>
 
-<div class="header">
-  <h2>HIS Academy CRM - Owner Panel</h2>
-  <button class="logout-btn" onclick="logout()">Logout</button>
-</div>
+<header>
+  <h2>Owner Dashboard</h2>
+  <button onclick="logout()">Logout</button>
+</header>
 
-<div class="dashboard">
+<div class="container">
 
-  <h3>Overview</h3>
-
-  <div class="card-container">
-
+  <!-- STAT CARDS -->
+  <div class="cards">
     <div class="card">
       <h3>Total Leads</h3>
-      <p id="totalLeads">0</p>
+      <h2 id="totalLeads">0</h2>
     </div>
-
     <div class="card">
       <h3>Interested</h3>
-      <p id="interested">0</p>
+      <h2 id="interested">0</h2>
     </div>
-
     <div class="card">
-      <h3>Not Interested</h3>
-      <p id="notInterested">0</p>
+      <h3>Joined</h3>
+      <h2 id="joined">0</h2>
     </div>
-
     <div class="card">
-      <h3>Call Back</h3>
-      <p id="callBack">0</p>
+      <h3>Revenue</h3>
+      <h2 id="revenue">₹0</h2>
     </div>
-
   </div>
+
+  <!-- AGENT PERFORMANCE TABLE -->
+  <h3>Agent Performance</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Agent</th>
+        <th>Total Leads</th>
+        <th>Interested</th>
+        <th>Joined</th>
+      </tr>
+    </thead>
+    <tbody id="agentTable">
+    </tbody>
+  </table>
 
 </div>
 
@@ -117,60 +125,119 @@ const firebaseConfig = {
   projectId: "dashboard-bd51c",
   storageBucket: "dashboard-bd51c.firebasestorage.app",
   messagingSenderId: "689809644516",
-  appId: "1:689809644516:web:75d6051b300983afb545f1",
-  measurementId: "G-5GWRNP2F9K"
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
 };
 
 firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Protect page
-auth.onAuthStateChanged(user => {
 
-  if (!user) {
-    window.location.href = "index.html";
-    return;
+// Protect Route (Only Owner Access)
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    window.location.href="index.html";
+  }else{
+    db.collection("users").doc(user.uid).get()
+    .then(doc=>{
+        if(doc.data().role !== "owner"){
+            alert("Access Denied");
+            window.location.href="index.html";
+        }
+        else{
+            loadDashboard();
+        }
+    });
   }
+});
 
-  db.collection("users").doc(user.uid).get()
-  .then(doc => {
-      if (!doc.exists || doc.data().role !== "owner") {
-        window.location.href = "index.html";
+
+function loadDashboard(){
+
+  let totalLeads=0;
+  let interested=0;
+  let joined=0;
+  let revenue=0;
+
+  db.collection("leads").onSnapshot(snapshot=>{
+
+    totalLeads=snapshot.size;
+    interested=0;
+    joined=0;
+    revenue=0;
+
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+
+      if(data.status==="Interested") interested++;
+      if(data.status==="Joined"){
+          joined++;
+          revenue += data.amount || 0;
       }
+    });
+
+    document.getElementById("totalLeads").innerText=totalLeads;
+    document.getElementById("interested").innerText=interested;
+    document.getElementById("joined").innerText=joined;
+    document.getElementById("revenue").innerText="₹"+revenue;
   });
 
-});
+  loadAgentPerformance();
+}
 
-// Load Lead Stats
-db.collection("leads").onSnapshot(snapshot => {
 
-  let total = 0;
-  let interested = 0;
-  let notInterested = 0;
-  let callBack = 0;
+// Agent Performance
+function loadAgentPerformance(){
 
-  snapshot.forEach(doc => {
-    total++;
+  db.collection("users").where("role","==","agent")
+  .onSnapshot(snapshot=>{
 
-    const status = doc.data().status;
+    let html="";
 
-    if (status === "Interested") interested++;
-    if (status === "Not Interested") notInterested++;
-    if (status === "Call Back") callBack++;
+    snapshot.forEach(userDoc=>{
+      const agentId=userDoc.id;
+      const agentName=userDoc.data().name;
+
+      db.collection("leads")
+      .where("assignedTo","==",agentId)
+      .get()
+      .then(leadSnap=>{
+
+        let total=leadSnap.size;
+        let interested=0;
+        let joined=0;
+
+        leadSnap.forEach(lead=>{
+          const data=lead.data();
+          if(data.status==="Interested") interested++;
+          if(data.status==="Joined") joined++;
+        });
+
+        html+=`
+          <tr>
+            <td>${agentName}</td>
+            <td>${total}</td>
+            <td>${interested}</td>
+            <td>${joined}</td>
+          </tr>
+        `;
+
+        document.getElementById("agentTable").innerHTML=html;
+
+      });
+
+    });
+
   });
 
-  document.getElementById("totalLeads").innerText = total;
-  document.getElementById("interested").innerText = interested;
-  document.getElementById("notInterested").innerText = notInterested;
-  document.getElementById("callBack").innerText = callBack;
+}
 
-});
 
 // Logout
 function logout(){
-  auth.signOut().then(() => {
-    window.location.href = "index.html";
+  auth.signOut().then(()=>{
+    window.location.href="index.html";
   });
 }
 
