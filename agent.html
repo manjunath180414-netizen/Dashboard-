@@ -249,6 +249,8 @@ auth.onAuthStateChanged(user=>{
       "Welcome, " + user.displayName;
 
     loadStats(user.uid);
+    loadLeadsSection(user.uid);
+
   }
 });
 
