@@ -1,284 +1,304 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>HIS Academy - Agent Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HIS Academy - Agent Dashboard</title>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <style>
-    body{
-      margin:0;
-      font-family:Segoe UI, sans-serif;
-      background:linear-gradient(135deg,#0f172a,#1e293b);
-      color:white;
-    }
+<style>
 
-    header{
-      padding:20px;
-      background:rgba(30,41,59,0.9);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
+body{
+margin:0;
+font-family:Segoe UI;
+background:linear-gradient(135deg,#0f172a,#1e293b);
+color:white;
+}
 
-    .container{
-      padding:20px;
-    }
+header{
+padding:18px;
+background:rgba(30,41,59,0.9);
+position:sticky;
+top:0;
+z-index:10;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
 
-    .stats{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
-      gap:15px;
-      margin-bottom:25px;
-    }
+.container{
+padding:15px;
+}
 
-    .box{
-      background:rgba(255,255,255,0.05);
-      padding:18px;
-      border-radius:12px;
-      text-align:center;
-      cursor:pointer;
-      transition:0.3s;
-    }
+.card{
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(12px);
+border-radius:16px;
+padding:15px;
+margin-bottom:18px;
+transition:0.3s;
+box-shadow:0 4px 20px rgba(0,0,0,0.4);
+}
 
-    .box:hover{
-      background:#2563eb;
-    }
+.card-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
 
-    .box span{
-      display:block;
-      font-size:22px;
-      font-weight:bold;
-    }
+.phone{
+color:#22c55e;
+cursor:pointer;
+font-weight:bold;
+}
 
-    .lead{
-      background:rgba(255,255,255,0.05);
-      padding:15px;
-      border-radius:12px;
-      margin-bottom:15px;
-    }
+.status-badge{
+padding:5px 10px;
+border-radius:20px;
+font-size:12px;
+background:#334155;
+}
 
-    .blink{
-      border:2px solid red;
-      animation:blink 1s infinite;
-    }
+.dropdown{
+margin-top:10px;
+width:100%;
+padding:8px;
+border-radius:8px;
+border:none;
+}
 
-    @keyframes blink{
-      0%{opacity:1;}
-      50%{opacity:0.6;}
-      100%{opacity:1;}
-    }
+.expand{
+margin-top:10px;
+}
 
-    button{
-      padding:6px 10px;
-      border:none;
-      border-radius:6px;
-      margin:5px 5px 0 0;
-      cursor:pointer;
-    }
+textarea,input{
+width:100%;
+padding:8px;
+border-radius:8px;
+border:none;
+margin-top:8px;
+}
 
-    .green{background:#22c55e;}
-    .yellow{background:#facc15;color:black;}
-    .red{background:#ef4444;}
-    .blue{background:#3b82f6;}
+button{
+margin-top:8px;
+padding:8px;
+border:none;
+border-radius:8px;
+background:#2563eb;
+color:white;
+cursor:pointer;
+}
 
-    .phone{
-      color:#22c55e;
-      cursor:pointer;
-      font-weight:bold;
-    }
+.green-border{border:2px solid #22c55e;}
+.red-blink{
+border:2px solid #ef4444;
+animation:blink 1s infinite;
+}
 
-    .toast{
-      position:fixed;
-      bottom:20px;
-      left:50%;
-      transform:translateX(-50%);
-      background:#22c55e;
-      padding:8px 15px;
-      border-radius:20px;
-      display:none;
-    }
+@keyframes blink{
+0%{opacity:1;}
+50%{opacity:0.6;}
+100%{opacity:1;}
+}
 
-  </style>
+.toast{
+position:fixed;
+bottom:20px;
+left:50%;
+transform:translateX(-50%);
+background:#22c55e;
+padding:8px 15px;
+border-radius:20px;
+display:none;
+}
+
+</style>
 </head>
 
 <body>
 
 <header>
-  <div>
-    <h3>HIS Academy - Agent Dashboard</h3>
-    <div id="welcome"></div>
-  </div>
-  <button onclick="logout()">Logout</button>
+<div>
+<b>HIS Academy</b><br>
+<span id="welcome"></span>
+</div>
+<button onclick="logout()">Logout</button>
 </header>
 
-<div class="container">
-
-  <div class="stats">
-    <div class="box" onclick="setFilter('All')">
-      <span id="total">0</span>Total
-    </div>
-    <div class="box" onclick="setFilter('Interested')">
-      <span id="interested">0</span>Interested
-    </div>
-    <div class="box" onclick="setFilter('Call Back')">
-      <span id="callback">0</span>Call Back
-    </div>
-    <div class="box" onclick="setFilter('Joined')">
-      <span id="joined">0</span>Joined
-    </div>
-    <div class="box" onclick="setFilter('Switched Off')">
-      <span id="switched">0</span>Switched Off
-    </div>
-  </div>
-
-  <div id="leadList"></div>
-
-</div>
+<div class="container" id="leadContainer"></div>
 
 <div class="toast" id="toast">Number Copied</div>
 
 <script>
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
-  authDomain: "dashboard-bd51c.firebaseapp.com",
-  projectId: "dashboard-bd51c",
-  storageBucket: "dashboard-bd51c.firebasestorage.app",
-  messagingSenderId: "689809644516",
-  appId: "1:689809644516:web:75d6051b300983afb545f1"
+apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+authDomain: "dashboard-bd51c.firebaseapp.com",
+projectId: "dashboard-bd51c",
+storageBucket: "dashboard-bd51c.firebasestorage.app",
+messagingSenderId: "689809644516",
+appId: "1:689809644516:web:75d6051b300983afb545f1"
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUID="";
-let currentFilter="All";
 
-auth.onAuthStateChanged(function(user){
-  if(!user){
-    window.location.href="index.html";
-  } else {
-    currentUID=user.uid;
-    document.getElementById("welcome").innerText="Welcome, "+(user.displayName || "");
-    loadLeads();
-  }
+auth.onAuthStateChanged(user=>{
+if(!user){ window.location.href="index.html"; }
+else{
+currentUID=user.uid;
+document.getElementById("welcome").innerText="Agent Dashboard - Welcome, "+user.displayName;
+loadLeads();
+}
 });
 
 function loadLeads(){
-  db.collection("leads")
-  .where("assignedTo","==",currentUID)
-  .onSnapshot(function(snapshot){
+db.collection("leads")
+.where("assignedTo","==",currentUID)
+.onSnapshot(snapshot=>{
+let html="";
 
-    let total=0, interested=0, callback=0, joined=0, switched=0;
-    let html="";
+snapshot.forEach(doc=>{
+const data=doc.data();
+let cardClass="card";
 
-    snapshot.forEach(function(doc){
+if(data.status==="Interested") cardClass+=" green-border";
 
-      const data=doc.data();
-      total++;
-
-      if(data.status==="Interested") interested++;
-      if(data.status==="Call Back") callback++;
-      if(data.status==="Joined") joined++;
-      if(data.status==="Switched Off") switched++;
-
-      if(currentFilter==="All" || data.status===currentFilter){
-
-        let blinkClass="";
-        if(data.callbackTime){
-          let now=new Date().getTime();
-          if(data.callbackTime-now <= 1800000 && data.callbackTime-now > 0){
-            blinkClass="blink";
-          }
-        }
-
-        html+=`
-          <div class="lead ${blinkClass}">
-            <b>${data.studentName}</b><br>
-            <span class="phone" onclick="copyPhone('${data.phone}')">
-              ${data.phone}
-            </span><br>
-            Course: ${data.course || ""}<br>
-            Status: ${data.status || "New"}<br>
-            ${data.amount ? "Amount: ₹"+data.amount+"<br>" : ""}
-
-            <button class="green" onclick="updateStatus('${doc.id}','Interested')">Interested</button>
-            <button class="yellow" onclick="setCallback('${doc.id}')">Call Back</button>
-            <button class="red" onclick="updateStatus('${doc.id}','Switched Off')">Switched Off</button>
-            <button class="blue" onclick="markJoined('${doc.id}')">Joined</button>
-          </div>
-        `;
-      }
-
-    });
-
-    document.getElementById("leadList").innerHTML=html;
-    document.getElementById("total").innerText=total;
-    document.getElementById("interested").innerText=interested;
-    document.getElementById("callback").innerText=callback;
-    document.getElementById("joined").innerText=joined;
-    document.getElementById("switched").innerText=switched;
-
-  });
+if(data.followUpTime){
+let diff=data.followUpTime - new Date().getTime();
+if(diff<=1800000 && diff>0) cardClass+=" red-blink";
 }
 
-function setFilter(status){
-  currentFilter=status;
-  loadLeads();
+html+=`
+<div class="${cardClass}">
+<div class="card-header">
+<div>
+<b>${data.studentName}</b><br>
+<span class="phone" onclick="copyPhone('${data.phone}')">${data.phone}</span>
+</div>
+<span class="status-badge">${data.status || "New"}</span>
+</div>
+
+<select class="dropdown" onchange="changeStatus('${doc.id}',this.value)">
+<option value="">Select Status</option>
+<option>Interested</option>
+<option>Not Interested</option>
+<option>Follow Up</option>
+<option>Joined</option>
+<option>Wrong Number</option>
+<option>Switched Off</option>
+</select>
+
+<div class="expand" id="expand-${doc.id}"></div>
+
+${data.amount ? "<div>Amount: ₹"+data.amount+"</div>" : ""}
+
+</div>
+`;
+});
+
+document.getElementById("leadContainer").innerHTML=html;
+});
 }
 
-function updateStatus(id,status){
-  db.collection("leads").doc(id).update({
-    status:status,
-    updatedAt:new Date()
-  });
+function changeStatus(id,status){
+
+let expand=document.getElementById("expand-"+id);
+expand.innerHTML="";
+
+if(status==="Interested"){
+expand.innerHTML=`<textarea placeholder="Reason"></textarea>
+<button onclick="saveStatus('${id}','Interested',this)">Save</button>`;
 }
 
-function setCallback(id){
-  let minutes=prompt("Call back after how many minutes?");
-  if(!minutes) return;
-
-  let time=new Date().getTime()+minutes*60000;
-
-  db.collection("leads").doc(id).update({
-    status:"Call Back",
-    callbackTime:time,
-    updatedAt:new Date()
-  });
+if(status==="Not Interested"){
+expand.innerHTML=`<textarea placeholder="Reason (Required)"></textarea>
+<button onclick="saveStatus('${id}','Not Interested',this)">Submit</button>`;
 }
 
-function markJoined(id){
-  let amount=prompt("Enter Amount Collected:");
-  if(!amount) return;
+if(status==="Follow Up"){
+expand.innerHTML=`<input type="time" id="time-${id}">
+<button onclick="saveFollowUp('${id}')">Set Follow Up</button>`;
+}
 
-  db.collection("leads").doc(id).update({
-    status:"Joined",
-    amount:parseInt(amount),
-    updatedAt:new Date()
-  });
+if(status==="Switched Off"){
+let time=new Date().getTime()+8*60*60*1000;
+db.collection("leads").doc(id).update({
+status:"Switched Off",
+followUpTime:time
+});
+}
+
+if(status==="Joined"){
+expand.innerHTML=`<input type="number" id="amt-${id}" placeholder="Enter Amount">
+<button onclick="saveJoined('${id}')">Save</button>`;
+}
+
+if(status==="Wrong Number"){
+expand.innerHTML=`<button onclick="removeLead('${id}')">Submit</button>`;
+}
+}
+
+function saveStatus(id,status,btn){
+let reason=btn.previousElementSibling.value;
+db.collection("leads").doc(id).update({
+status:status,
+notes:reason,
+updatedAt:new Date()
+});
+}
+
+function saveFollowUp(id){
+let t=document.getElementById("time-"+id).value;
+if(!t) return;
+
+let now=new Date();
+let parts=t.split(":");
+now.setHours(parts[0]);
+now.setMinutes(parts[1]);
+let time=now.getTime();
+
+db.collection("leads").doc(id).update({
+status:"Follow Up",
+followUpTime:time,
+updatedAt:new Date()
+});
+}
+
+function saveJoined(id){
+let amt=document.getElementById("amt-"+id).value;
+if(!amt) return;
+
+db.collection("leads").doc(id).update({
+status:"Joined",
+amount:parseInt(amt),
+updatedAt:new Date()
+});
+}
+
+function removeLead(id){
+db.collection("leads").doc(id).update({
+status:"Wrong Number",
+assignedTo:null
+});
 }
 
 function copyPhone(phone){
-  navigator.clipboard.writeText(phone);
-  let toast=document.getElementById("toast");
-  toast.style.display="block";
-  setTimeout(()=>{toast.style.display="none";},1500);
+navigator.clipboard.writeText(phone);
+let toast=document.getElementById("toast");
+toast.style.display="block";
+setTimeout(()=>{toast.style.display="none";},1500);
 }
 
 function logout(){
-  auth.signOut().then(function(){
-    window.location.href="index.html";
-  });
+auth.signOut().then(()=>window.location.href="index.html");
 }
 
 </script>
-
 </body>
 </html>
