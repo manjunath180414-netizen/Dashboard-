@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manager Dashboard - HIS CRM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase CDN -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <style>
+    body{
+      margin:0;
+      font-family:Arial;
+      background:#0f172a;
+      color:white;
+    }
+
+    header{
+      background:#1e293b;
+      padding:15px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .container{
+      padding:20px;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:15px;
+      margin-bottom:30px;
+    }
+
+    .card{
+      background:#1e293b;
+      padding:20px;
+      border-radius:10px;
+      text-align:center;
+    }
+
+    input, select{
+      width:100%;
+      padding:10px;
+      margin:8px 0;
+      border-radius:5px;
+      border:none;
+    }
+
+    button{
+      padding:8px 15px;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+      background:#2563eb;
+      color:white;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#1e293b;
+      margin-top:20px;
+    }
+
+    th,td{
+      padding:10px;
+      border-bottom:1px solid #334155;
+      text-align:center;
+    }
+
+    th{
+      background:#111827;
+    }
+
+    .section{
+      margin-bottom:40px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h2>Manager Dashboard</h2>
+  <button onclick="logout()">Logout</button>
+</header>
+
+<div class="container">
+
+  <!-- TOP STATS -->
+  <div class="cards">
+    <div class="card">
+      <h3>Total Leads</h3>
+      <h2 id="totalLeads">0</h2>
+    </div>
+    <div class="card">
+      <h3>Interested</h3>
+      <h2 id="interested">0</h2>
+    </div>
+    <div class="card">
+      <h3>Joined</h3>
+      <h2 id="joined">0</h2>
+    </div>
+  </div>
+
+  <!-- ADD LEAD SECTION -->
+  <div class="section">
+    <h3>Add New Lead</h3>
+    <input type="text" id="studentName" placeholder="Student Name">
+    <input type="text" id="phone" placeholder="Phone Number">
+    <input type="text" id="course" placeholder="Course (SSLC/KCET/NEET)">
+    
+    <select id="agentSelect">
+      <option value="">Assign Agent</option>
+    </select>
+
+    <button onclick="addLead()">Add Lead</button>
+  </div>
+
+  <!-- AGENT PERFORMANCE -->
+  <div class="section">
+    <h3>Agent Performance</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Agent</th>
+          <th>Total Leads</th>
+          <th>Interested</th>
+          <th>Joined</th>
+        </tr>
+      </thead>
+      <tbody id="agentTable"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentManagerUID="";
+
+
+// Protect Route
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    window.location.href="index.html";
+  }else{
+    db.collection("users").doc(user.uid).get()
+    .then(doc=>{
+        if(doc.data().role!=="manager"){
+            alert("Access Denied");
+            window.location.href="index.html";
+        }else{
+            currentManagerUID=user.uid;
+            loadDashboard();
+            loadAgents();
+        }
+    });
+  }
+});
+
+
+// Load Stats
+function loadDashboard(){
+  db.collection("leads")
+  .where("managerId","==",currentManagerUID)
+  .onSnapshot(snapshot=>{
+
+    let total=snapshot.size;
+    let interested=0;
+    let joined=0;
+
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+      if(data.status==="Interested") interested++;
+      if(data.status==="Joined") joined++;
+    });
+
+    document.getElementById("totalLeads").innerText=total;
+    document.getElementById("interested").innerText=interested;
+    document.getElementById("joined").innerText=joined;
+
+  });
+
+  loadAgentPerformance();
+}
+
+
+// Load Agents Dropdown
+function loadAgents(){
+  db.collection("users")
+  .where("role","==","agent")
+  .where("managerId","==",currentManagerUID)
+  .onSnapshot(snapshot=>{
+
+    let html='<option value="">Assign Agent</option>';
+
+    snapshot.forEach(doc=>{
+      html+=`<option value="${doc.id}">${doc.data().name}</option>`;
+    });
+
+    document.getElementById("agentSelect").innerHTML=html;
+  });
+}
+
+
+// Add Lead
+function addLead(){
+
+  const name=document.getElementById("studentName").value;
+  const phone=document.getElementById("phone").value;
+  const course=document.getElementById("course").value;
+  const agent=document.getElementById("agentSelect").value;
+
+  if(!name || !phone){
+    alert("Fill all required fields");
+    return;
+  }
+
+  db.collection("leads").add({
+    studentName:name,
+    phone:phone,
+    course:course,
+    managerId:currentManagerUID,
+    assignedTo:agent || null,
+    status:"New",
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then(()=>{
+    alert("Lead Added Successfully");
+    document.getElementById("studentName").value="";
+    document.getElementById("phone").value="";
+    document.getElementById("course").value="";
+  });
+}
+
+
+// Agent Performance
+function loadAgentPerformance(){
+
+  db.collection("users")
+  .where("role","==","agent")
+  .where("managerId","==",currentManagerUID)
+  .onSnapshot(snapshot=>{
+
+    let html="";
+
+    snapshot.forEach(userDoc=>{
+      const agentId=userDoc.id;
+      const agentName=userDoc.data().name;
+
+      db.collection("leads")
+      .where("assignedTo","==",agentId)
+      .get()
+      .then(leadSnap=>{
+
+        let total=leadSnap.size;
+        let interested=0;
+        let joined=0;
+
+        leadSnap.forEach(lead=>{
+          const data=lead.data();
+          if(data.status==="Interested") interested++;
+          if(data.status==="Joined") joined++;
+        });
+
+        html+=`
+          <tr>
+            <td>${agentName}</td>
+            <td>${total}</td>
+            <td>${interested}</td>
+            <td>${joined}</td>
+          </tr>
+        `;
+
+        document.getElementById("agentTable").innerHTML=html;
+
+      });
+
+    });
+
+  });
+}
+
+
+// Logout
+function logout(){
+  auth.signOut().then(()=>{
+    window.location.href="index.html";
+  });
+}
+
+</script>
+
+</body>
+</html>
