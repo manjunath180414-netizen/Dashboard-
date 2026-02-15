@@ -89,19 +89,48 @@ font-size:12px;
 }
 
 .lead-card{
-background:rgba(255,255,255,0.05);
-border-radius:16px;
-padding:15px;
-margin-bottom:14px;
+border-radius:14px;
+margin-bottom:12px;
+overflow:hidden;
 transition:0.3s;
-box-shadow:0 4px 20px rgba(0,0,0,0.4);
 }
 
-.glow-green{background:rgba(34,197,94,0.2);}
-.glow-teal{background:rgba(20,184,166,0.2);}
-.glow-orange{background:rgba(245,158,11,0.2);}
-.glow-red{background:rgba(239,68,68,0.35);}
-.blink{animation:blink 1s infinite;}
+.lead-main{
+display:flex;
+justify-content:space-between;
+padding:14px;
+font-weight:600;
+cursor:pointer;
+background:rgba(255,255,255,0.05);
+}
+
+.lead-expand{
+display:none;
+padding:12px;
+background:rgba(0,0,0,0.25);
+}
+
+.strong-green{
+background:linear-gradient(90deg,rgba(34,197,94,0.35),rgba(34,197,94,0.15));
+}
+
+.strong-teal{
+background:linear-gradient(90deg,rgba(20,184,166,0.35),rgba(20,184,166,0.15));
+}
+
+.strong-orange{
+background:linear-gradient(90deg,rgba(245,158,11,0.35),rgba(245,158,11,0.15));
+}
+
+.strong-red{
+background:linear-gradient(90deg,rgba(239,68,68,0.45),rgba(239,68,68,0.25));
+}
+
+.blink-border{
+box-shadow:0 0 20px red;
+animation:blink 1s infinite;
+}
+
 
 @keyframes blink{
 0%{opacity:1;}
@@ -395,6 +424,11 @@ let toast=document.getElementById("toast");
 toast.style.display="block";
 setTimeout(()=>{toast.style.display="none";},1200);
 }
+  function toggleLead(id){
+let el=document.getElementById("expand-"+id);
+el.style.display = el.style.display==="block" ? "none" : "block";
+}
+
 
 </script>
 </body>
