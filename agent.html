@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HIS Academy - Agent Dashboard</title>
+<title>HIS Academy CRM</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -11,244 +12,183 @@
 <style>
 body{
 margin:0;
-font-family:Segoe UI;
-background:linear-gradient(135deg,#0f172a,#1e293b);
+font-family:'Segoe UI',sans-serif;
+background:linear-gradient(135deg,#050c1f,#0b1b3a);
 color:white;
 }
 
-.container{padding:20px;}
-
+/* HEADER */
 .header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:10px;
+padding:20px;
 }
 
-.slogan{
-font-size:18px;
+.title{
+font-size:20px;
+color:#7dd3fc;
 font-weight:600;
 }
 
-.date{
-font-size:12px;
-color:#94a3b8;
-}
-
 .welcome{
-margin-bottom:20px;
+margin-top:5px;
 color:#cbd5e1;
 }
 
-.date-filter{
-background:#1e293b;
-border:none;
-color:white;
-padding:6px;
-border-radius:8px;
-cursor:pointer;
-}
-
+/* STAT BOXES */
 .box-row{
 display:grid;
 grid-template-columns:repeat(3,1fr);
 gap:12px;
-margin-bottom:12px;
+padding:0 20px;
+margin-top:10px;
 }
 
 .box-row-4{
 display:grid;
 grid-template-columns:repeat(2,1fr);
 gap:12px;
-margin-bottom:20px;
+padding:0 20px;
+margin-top:10px;
 }
 
 .box{
-background:rgba(59,130,246,0.15);
-border:1px solid rgba(59,130,246,0.4);
+background:rgba(30,64,175,0.25);
+border:1px solid #3b82f6;
 border-radius:14px;
 padding:15px;
 text-align:center;
-cursor:pointer;
-transition:0.3s;
-}
-
-.box.active{
-background:rgba(59,130,246,0.35);
-box-shadow:0 0 20px rgba(59,130,246,0.6);
+box-shadow:0 0 20px rgba(59,130,246,0.6),
+           0 0 40px rgba(59,130,246,0.3);
 }
 
 .box h2{
 margin:0;
-font-size:20px;
+font-size:22px;
 }
 
 .box p{
-margin:4px 0 0;
-font-size:12px;
+margin:5px 0 0;
+font-size:13px;
 }
 
-.lead-card{
-border-radius:14px;
-margin-bottom:12px;
-overflow:hidden;
+/* TABLE CARD */
+.table-container{
+width:92%;
+margin:30px auto;
+background:rgba(15,30,70,0.85);
+border-radius:18px;
+padding:20px;
+box-shadow:0 0 30px #0ea5e9;
+}
+
+/* TABLE */
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th,td{
+padding:14px;
+text-align:left;
+}
+
+th{
+color:#93c5fd;
+font-weight:500;
+}
+
+tr{
+border-bottom:1px solid rgba(255,255,255,0.08);
 transition:0.3s;
 }
 
-.lead-main{
-display:flex;
-justify-content:space-between;
-padding:14px;
+/* STATUS STRIP */
+.status-strip{
+width:6px;
+}
+
+.interested{border-left:6px solid #22c55e;}
+.notinterested{border-left:6px solid #ef4444;}
+.switch{border-left:6px solid #f59e0b;}
+.joined{border-left:6px solid #06b6d4;}
+.wrong{border-left:6px solid #dc2626;}
+
+/* TIMER */
+.timer{
 font-weight:600;
-cursor:pointer;
-background:rgba(255,255,255,0.05);
 }
 
-.lead-expand{
-display:none;
-padding:12px;
-background:rgba(0,0,0,0.25);
-}
-
-.strong-green{
-background:linear-gradient(90deg,rgba(34,197,94,0.35),rgba(34,197,94,0.15));
-}
-
-.strong-teal{
-background:linear-gradient(90deg,rgba(20,184,166,0.35),rgba(20,184,166,0.15));
-}
-
-.strong-orange{
-background:linear-gradient(90deg,rgba(245,158,11,0.35),rgba(245,158,11,0.15));
-}
-
-.strong-red{
-background:linear-gradient(90deg,rgba(239,68,68,0.45),rgba(239,68,68,0.25));
-}
-
-.blink-border{
-box-shadow:0 0 20px red;
+.missed{
+color:#ff0000;
 animation:blink 1s infinite;
 }
 
-
 @keyframes blink{
-0%{opacity:1;}
-50%{opacity:0.7;}
-100%{opacity:1;}
+50%{opacity:0.4;}
 }
 
-.top-row{
-display:flex;
-justify-content:space-between;
-font-weight:600;
+select,input{
+background:#0f172a;
+color:white;
+padding:6px;
+border-radius:8px;
+border:1px solid #38bdf8;
 }
 
 .phone{
 color:#22c55e;
-cursor:pointer;
-}
-
-select,input,textarea{
-width:100%;
-margin-top:8px;
-padding:8px;
-border-radius:8px;
-border:none;
-background:#1e293b;
-color:white;
-}
-
-.error{
-color:#f87171;
-font-size:12px;
-margin-top:4px;
-}
-
-.toast{
-position:fixed;
-bottom:20px;
-left:50%;
-transform:translateX(-50%);
-background:#22c55e;
-padding:6px 12px;
-border-radius:20px;
-display:none;
-font-size:12px;
+font-weight:600;
 }
 </style>
 </head>
-
 <body>
 
-<div class="container">
-
 <div class="header">
-<div>
-<div class="slogan">HIS Academy – Let us change the way students study</div>
-<div class="date" id="todayDate"></div>
+<div class="title">HIS Academy – Let us change the way students study</div>
+<div class="welcome">Loading...</div>
 </div>
-<input type="date" class="date-filter" id="datePicker">
-</div>
-
-<div class="welcome" id="welcomeText"></div>
 
 <!-- 3 BOXES -->
 <div class="box-row">
-<div class="box" onclick="setFilter('assignedToday')" id="assignedBox">
-<h2 id="assignedToday">0</h2>
-<p>Assigned Today</p>
-</div>
-<div class="box" onclick="setFilter('calledToday')" id="calledBox">
-<h2 id="calledToday">0</h2>
-<p>Called Today</p>
-</div>
-<div class="box" onclick="setFilter('pendingToday')" id="pendingBox">
-<h2 id="pendingToday">0</h2>
-<p>Pending Today</p>
-</div>
+<div class="box"><h2 id="assignedCount">0</h2><p>Assigned Today</p></div>
+<div class="box"><h2 id="calledCount">0</h2><p>Called Today</p></div>
+<div class="box"><h2 id="pendingCount">0</h2><p>Pending Today</p></div>
 </div>
 
 <!-- 4 BOXES -->
 <div class="box-row-4">
-<div class="box" onclick="setFilter('Interested')" id="interestedBox">
-<h2 id="interestedCount">0</h2>
-<p>Interested</p>
-</div>
-<div class="box" onclick="setFilter('Not Interested')" id="notInterestedBox">
-<h2 id="notInterestedCount">0</h2>
-<p>Not Interested</p>
-</div>
-<div class="box" onclick="setFilter('Follow Up')" id="followUpBox">
-<h2 id="followUpCount">0</h2>
-<p>Follow Up</p>
-</div>
-<div class="box" onclick="setFilter('Joined')" id="joinedBox">
-<h2 id="joinedCount">0</h2>
-<p>Joined</p>
-</div>
+<div class="box"><h2 id="interestedCount">0</h2><p>Interested</p></div>
+<div class="box"><h2 id="notInterestedCount">0</h2><p>Not Interested</p></div>
+<div class="box"><h2 id="followUpCount">0</h2><p>Follow Up</p></div>
+<div class="box"><h2 id="joinedCount">0</h2><p>Joined</p></div>
 </div>
 
-<div id="leadsContainer"></div>
+<div class="table-container">
+<h3>Today's Leads</h3>
 
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Name</th>
+<th>Phone</th>
+<th>Status</th>
+<th>Follow Up / Amount</th>
+</tr>
+</thead>
+
+<tbody id="leadTable"></tbody>
+</table>
 </div>
-
-<div class="toast" id="toast">Number Copied</div>
-
-<script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
-  authDomain: "dashboard-bd51c.firebaseapp.com",
-  projectId: "dashboard-bd51c",
-  storageBucket: "dashboard-bd51c.firebasestorage.app",
-  messagingSenderId: "689809644516",
-  appId: "1:689809644516:web:75d6051b300983afb545f1"
+apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+authDomain: "dashboard-bd51c.firebaseapp.com",
+projectId: "dashboard-bd51c",
+storageBucket: "dashboard-bd51c.firebasestorage.app",
+messagingSenderId: "689809644516",
+appId: "1:689809644516:web:75d6051b300983afb545f1"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -258,37 +198,38 @@ const db = firebase.firestore();
 let currentUID="";
 
 auth.onAuthStateChanged(user=>{
-  if(!user){
-    window.location.href="index.html";
-  } else {
-    currentUID=user.uid;
+if(!user){
+window.location.href="index.html";
+}else{
+currentUID=user.uid;
 
-    db.collection("users").doc(currentUID).get().then(doc=>{
-      if(!doc.exists || doc.data().role!=="agent"){
-        window.location.href="index.html";
-      } else {
-        document.querySelector(".welcome").innerText="Welcome, "+doc.data().name;
-        loadLeads();
-      }
-    });
-  }
+db.collection("users").doc(currentUID).get().then(doc=>{
+if(!doc.exists || doc.data().role!=="agent"){
+window.location.href="index.html";
+}else{
+document.querySelector(".welcome").innerText="Welcome, "+doc.data().name;
+loadLeads();
+}
+});
+}
 });
 
 function loadLeads(){
+db.collection("leads")
+.where("assignedTo","==",currentUID)
+.onSnapshot(snapshot=>{
 
-  db.collection("leads")
-  .where("assignedTo","==",currentUID)
-  .onSnapshot(snapshot=>{
+leadTable.innerHTML="";
+let leads=[];
 
-    leadTable.innerHTML="";
-    let leadsData=[];
-    snapshot.forEach(doc=>{
-      leadsData.push({...doc.data(), id:doc.id});
-    });
+snapshot.forEach(doc=>{
+leads.push({...doc.data(), id:doc.id});
+});
 
-    leadsData.forEach((lead,index)=>createRow(lead,index));
-    updateCounts(leadsData);
-  });
+leads.forEach((lead,index)=>createRow(lead,index));
+updateCounts(leads);
+
+});
 }
 
 function updateCounts(leads){
@@ -321,15 +262,12 @@ return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toSt
 }
 
 function startTimer(cell,row,targetTime){
+
 let interval=setInterval(()=>{
 let remaining=Math.floor((targetTime-Date.now())/1000);
 
 if(remaining>0){
 cell.innerHTML="Call in "+formatTime(remaining);
-
-if(remaining<=1800){
-cell.classList.add("warning");
-}
 }else{
 cell.innerHTML="Missed Follow Up";
 cell.classList.add("missed");
@@ -368,26 +306,32 @@ select.addEventListener("change",function(){
 
 row.className="";
 dynamic.innerHTML="--";
-
 let newStatus=this.value;
 
 if(newStatus==="Interested"){
 row.classList.add("interested");
 }
 
+if(newStatus==="Not Interested"){
+row.classList.add("notinterested");
+}
+
 if(newStatus==="Follow Up"){
 row.classList.add("interested");
-let time=prompt("Enter follow up time (HH:MM 24hr format)");
+let time=prompt("Enter follow up time (HH:MM)");
 if(time){
 let now=new Date();
 let parts=time.split(":");
 now.setHours(parts[0]);
 now.setMinutes(parts[1]);
+let target=now.getTime();
+
 db.collection("leads").doc(lead.id).update({
 status:newStatus,
-followUpTime:now.getTime()
+followUpTime:target
 });
-startTimer(dynamic,row,now.getTime());
+
+startTimer(dynamic,row,target);
 }
 return;
 }
@@ -395,17 +339,25 @@ return;
 if(newStatus==="Switch Off"){
 row.classList.add("switch");
 let target=Date.now()+8*60*60*1000;
+
 db.collection("leads").doc(lead.id).update({
 status:newStatus,
 followUpTime:target
 });
+
 startTimer(dynamic,row,target);
+return;
+}
+
+if(newStatus==="Wrong Number"){
+row.classList.add("wrong");
+db.collection("leads").doc(lead.id).update({status:newStatus});
 return;
 }
 
 if(newStatus==="Joined"){
 row.classList.add("joined");
-let amount=prompt("Enter Amount Paid:");
+let amount=prompt("Enter Amount Paid (Required)");
 if(amount){
 db.collection("leads").doc(lead.id).update({
 status:newStatus,
@@ -416,17 +368,7 @@ dynamic.innerHTML="₹"+amount;
 return;
 }
 
-if(newStatus==="Wrong Number"){
-row.classList.add("wrong");
-db.collection("leads").doc(lead.id).update({
-status:newStatus
-});
-return;
-}
-
-db.collection("leads").doc(lead.id).update({
-status:newStatus
-});
+db.collection("leads").doc(lead.id).update({status:newStatus});
 
 });
 
@@ -435,10 +377,5 @@ leadTable.appendChild(row);
 
 </script>
 
-
-
-
-</script>
 </body>
 </html>
-
