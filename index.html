@@ -10,9 +10,9 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <style>
-    body {
+    body{
       margin:0;
-      font-family: Arial;
+      font-family:Arial;
       background:#0f172a;
       display:flex;
       justify-content:center;
@@ -21,30 +21,39 @@
       color:white;
     }
 
-    .box {
+    .box{
       background:#1e293b;
       padding:30px;
       border-radius:10px;
-      width:320px;
+      width:340px;
       text-align:center;
-      box-shadow:0 0 20px rgba(0,0,0,0.4);
+      box-shadow:0 0 25px rgba(0,0,0,0.4);
     }
 
-    button {
+    button{
       width:100%;
       padding:12px;
-      background:white;
-      color:black;
+      margin-top:15px;
       border:none;
-      border-radius:5px;
+      border-radius:6px;
       cursor:pointer;
       font-weight:bold;
-      margin-top:20px;
     }
 
-    #error {
-      color:#f87171;
+    .google-btn{
+      background:white;
+      color:black;
+    }
+
+    .dashboard-btn{
+      background:#22c55e;
+      color:white;
+    }
+
+    #status{
       margin-top:15px;
+      font-size:14px;
+      color:#9ca3af;
     }
   </style>
 </head>
@@ -54,9 +63,15 @@
 <div class="box">
   <h2>HIS Academy CRM</h2>
 
-  <button onclick="googleLogin()">Login with Google</button>
+  <button class="google-btn" onclick="googleLogin()">
+    Login with Google
+  </button>
 
-  <p id="error"></p>
+  <button class="dashboard-btn" id="goDashboard" style="display:none;" onclick="goDashboard()">
+    Already Logged In – Go to Dashboard
+  </button>
+
+  <p id="status"></p>
 </div>
 
 <script>
@@ -67,60 +82,88 @@ const firebaseConfig = {
   projectId: "dashboard-bd51c",
   storageBucket: "dashboard-bd51c.firebasestorage.app",
   messagingSenderId: "689809644516",
-  appId: "1:689809644516:web:75d6051b300983afb545f1",
-  measurementId: "G-5GWRNP2F9K"
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
 };
 
 firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-
 const provider = new firebase.auth.GoogleAuthProvider();
 
-function googleLogin() {
-
+// Google Login
+function googleLogin(){
   auth.signInWithPopup(provider)
-  .then(result => {
+  .then(result=>{
       const user = result.user;
-      checkUserRole(user.uid);
+
+      saveUserToDatabase(user);
   })
-  .catch(error => {
-      document.getElementById("error").innerText = error.message;
+  .catch(error=>{
+      document.getElementById("status").innerText = error.message;
   });
 }
 
-function checkUserRole(uid) {
+// Save user in Firestore
+function saveUserToDatabase(user){
 
-  db.collection("users").doc(uid).get()
-  .then(doc => {
+  db.collection("users").doc(user.uid).get()
+  .then(doc=>{
 
-      if (!doc.exists) {
-          document.getElementById("error").innerText =
-            "Access not granted. Contact Owner.";
-          return;
+      if(!doc.exists){
+          // New User → Default Role = agent
+          db.collection("users").doc(user.uid).set({
+              name: user.displayName,
+              email: user.email,
+              role: "agent",
+              createdAt: new Date()
+          })
+          .then(()=>{
+              document.getElementById("status").innerText =
+              "New user created as Agent. You can change role in Firestore.";
+              redirectBasedOnRole("agent");
+          });
       }
-
-      const role = doc.data().role;
-
-      if (role === "owner") {
-          window.location.href = "owner.html";
+      else{
+          const role = doc.data().role;
+          redirectBasedOnRole(role);
       }
-      else if (role === "manager") {
-          window.location.href = "manager.html";
-      }
-      else if (role === "agent") {
-          window.location.href = "agent.html";
-      }
-      else {
-          document.getElementById("error").innerText =
-            "Invalid role assigned.";
-      }
-
-  })
-  .catch(error => {
-      document.getElementById("error").innerText = error.message;
   });
+}
+
+// Redirect
+function redirectBasedOnRole(role){
+
+  if(role==="owner"){
+      window.location.href="owner.html";
+  }
+  else if(role==="manager"){
+      window.location.href="manager.html";
+  }
+  else{
+      window.location.href="agent.html";
+  }
+}
+
+// Auto Detect Logged In User
+auth.onAuthStateChanged(user=>{
+  if(user){
+      document.getElementById("goDashboard").style.display="block";
+      document.getElementById("status").innerText =
+      "Logged in as: " + user.email;
+  }
+});
+
+// Dashboard Button
+function goDashboard(){
+  const user = auth.currentUser;
+  if(user){
+      db.collection("users").doc(user.uid).get()
+      .then(doc=>{
+          const role = doc.data().role;
+          redirectBasedOnRole(role);
+      });
+  }
 }
 
 </script>
