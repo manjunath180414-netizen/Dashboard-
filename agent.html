@@ -215,94 +215,98 @@ navigator.clipboard.writeText(lead.phone);
 alert("Number Copied");
 };
 
-select.onchange=async function(){
+select.onchange = async function(){
 
-let status=this.value;
+let status = this.value;
+
+/* RESET COLORS */
+this.style.background = "#0f172a";
+row.style.background = "";
 
 /* INTERESTED */
-if(status==="Interested"){
-this.style.background="#22c55e";
-await db.collection("leads").doc(lead.id).update({status});
-}
-
-/* NOT INTERESTED */
-if(status==="Not Interested"){
-this.style.background="#ef4444";
-await db.collection("leads").doc(lead.id).update({status});
+if(status === "Interested"){
+    this.style.background = "#22c55e";
+    await db.collection("leads").doc(lead.id).update({status});
 }
 
 /* FOLLOW UP */
-if(status==="Follow Up"){
+if(status === "Follow Up"){
+    this.style.background = "#22c55e";
 
-let input=document.createElement("input");
-input.type="time";
-dynamic.innerHTML="";
-dynamic.appendChild(input);
+    let input = document.createElement("input");
+    input.type = "time";
+    dynamic.innerHTML = "";
+    dynamic.appendChild(input);
 
-input.onchange=async function(){
+    input.onchange = async function(){
 
-if(!this.value){
-alert("Time required");
-select.value="New";
-return;
+        if(!this.value){
+            alert("Follow up time required");
+            select.value="New";
+            return;
+        }
+
+        let now = new Date();
+        let [h,m] = this.value.split(":");
+
+        let selected = new Date();
+        selected.setHours(h);
+        selected.setMinutes(m);
+        selected.setSeconds(0);
+
+        if(selected <= now){
+            selected.setDate(selected.getDate()+1);
+        }
+
+        await db.collection("leads").doc(lead.id).update({
+            status,
+            followUpTime:selected.getTime()
+        });
+    };
+
+    return;
 }
 
-let now=new Date();
-let [h,m]=this.value.split(":");
-
-let selected=new Date();
-selected.setHours(h);
-selected.setMinutes(m);
-selected.setSeconds(0);
-
-if(selected<=now) selected.setDate(selected.getDate()+1);
-
-await db.collection("leads").doc(lead.id).update({
-status,
-followUpTime:selected.getTime()
-});
-};
-
-return;
+/* NOT INTERESTED */
+if(status === "Not Interested"){
+    this.style.background = "#f87171"; // light red
+    await db.collection("leads").doc(lead.id).update({status});
 }
 
 /* SWITCH OFF */
-if(status==="Switch Off"){
-let target=Date.now()+8*60*60*1000;
-await db.collection("leads").doc(lead.id).update({
-status,
-followUpTime:target
-});
+if(status === "Switch Off"){
+    await db.collection("leads").doc(lead.id).update({status});
 }
 
-/* WRONG NUMBER */
-if(status==="Wrong Number"){
-this.style.background="#7f1d1d";
-await db.collection("leads").doc(lead.id).update({status});
+/* WRONG NUMBER → FULL ROW RED */
+if(status === "Wrong Number"){
+    row.style.background = "#7f1d1d";
+    await db.collection("leads").doc(lead.id).update({status});
 }
 
-/* JOINED */
-if(status==="Joined"){
+/* JOINED → FULL ROW GREEN */
+if(status === "Joined"){
 
-let amount="";
-while(!amount){
-amount=prompt("Enter Amount (Required)");
-if(amount===null){select.value="New";return;}
+    let amount="";
+    while(!amount){
+        amount = prompt("Enter Amount (Required)");
+        if(amount === null){
+            select.value="New";
+            return;
+        }
+    }
+
+    row.style.background = "#065f46";
+
+    await db.collection("leads").doc(lead.id).update({
+        status,
+        amount:parseInt(amount)
+    });
+
+    dynamic.innerText = "₹"+amount;
 }
-
-await db.collection("leads").doc(lead.id).update({
-status,
-amount:parseInt(amount)
-});
-
-dynamic.innerText="₹"+amount;
-}
-
 };
 
-leadTable.appendChild(row);
-});
-}
 
 function updateCounts(){
 assignedCount.innerText=leadsData.length;
