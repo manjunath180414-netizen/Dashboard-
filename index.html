@@ -77,24 +77,31 @@
     measurementId: "G-5GWRNP2F9K"
   };
 
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-
   function login(){
-    console.log("Login clicked");
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+  auth.signInWithEmailAndPassword(email,password)
+  .then(userCredential=>{
+      const user = userCredential.user;
 
-    auth.signInWithEmailAndPassword(email,password)
-    .then(userCredential=>{
-        alert("Login Success");
-    })
-    .catch(error=>{
-        document.getElementById("error").innerText=error.message;
-    });
-  }
+      db.collection("users").doc(user.uid).get()
+      .then(doc=>{
+          if(!doc.exists){
+              document.getElementById("error").innerText="Role not assigned in Firestore.";
+              return;
+          }
+
+          const role = doc.data().role;
+
+          alert("Role is: " + role);
+      });
+  })
+  .catch(error=>{
+      document.getElementById("error").innerText=error.message;
+  });
+}
+
 </script>
 
 </body>
