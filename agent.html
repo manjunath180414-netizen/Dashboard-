@@ -180,6 +180,7 @@ font-weight:600;
 </table>
 </div>
 
+
 <script>
 
 const firebaseConfig = {
@@ -196,6 +197,8 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 let currentUID="";
+let allLeads=[];
+let currentFilter="All";
 
 auth.onAuthStateChanged(user=>{
 if(!user){
@@ -219,24 +222,35 @@ db.collection("leads")
 .where("assignedTo","==",currentUID)
 .onSnapshot(snapshot=>{
 
-leadTable.innerHTML="";
-let leads=[];
-
+allLeads=[];
 snapshot.forEach(doc=>{
-leads.push({...doc.data(), id:doc.id});
+allLeads.push({...doc.data(), id:doc.id});
 });
 
-leads.forEach((lead,index)=>createRow(lead,index));
-updateCounts(leads);
+renderLeads();
+updateCounts();
 
 });
 }
 
-function updateCounts(leads){
-let assigned=leads.length;
+function renderLeads(){
+
+leadTable.innerHTML="";
+
+let filtered = allLeads.filter(l=>{
+if(currentFilter==="All") return true;
+return l.status===currentFilter;
+});
+
+filtered.forEach((lead,index)=>createRow(lead,index));
+}
+
+function updateCounts(){
+
+let assigned=allLeads.length;
 let called=0,pending=0,interested=0,notInterested=0,followUp=0,joined=0;
 
-leads.forEach(l=>{
+allLeads.forEach(l=>{
 if(l.status!=="New") called++;
 if(l.status==="New") pending++;
 if(l.status==="Interested") interested++;
@@ -254,6 +268,19 @@ followUpCount.innerText=followUp;
 joinedCount.innerText=joined;
 }
 
+/* CLICKABLE TOP BOXES */
+document.querySelectorAll(".box").forEach(box=>{
+box.addEventListener("click",function(){
+let label=this.querySelector("p").innerText;
+
+if(label==="Assigned Today") currentFilter="All";
+else currentFilter=label;
+
+renderLeads();
+});
+});
+
+/* TIMER FORMAT */
 function formatTime(seconds){
 let h=Math.floor(seconds/3600);
 let m=Math.floor((seconds%3600)/60);
@@ -261,6 +288,7 @@ let s=seconds%60;
 return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
+/* TIMER START */
 function startTimer(cell,row,targetTime){
 
 let interval=setInterval(()=>{
@@ -277,6 +305,7 @@ clearInterval(interval);
 },1000);
 }
 
+/* CREATE ROW */
 function createRow(lead,index){
 
 let row=document.createElement("tr");
@@ -296,34 +325,58 @@ row.innerHTML=`
 <option ${lead.status==="Joined"?"selected":""}>Joined</option>
 </select>
 </td>
-<td class="dynamic">${lead.amount?("₹"+lead.amount):"--"}</td>
+<td class="dynamic"></td>
 `;
 
 let select=row.querySelector("select");
 let dynamic=row.querySelector(".dynamic");
 
+/* PHONE COPY */
+row.querySelector(".phone").addEventListener("click",()=>{
+navigator.clipboard.writeText(lead.phone);
+alert("Number Copied");
+});
+
+/* RESTORE TIMER IF EXISTS */
+if(lead.followUpTime){
+startTimer(dynamic,row,lead.followUpTime);
+}
+
+/* STATUS CHANGE */
 select.addEventListener("change",function(){
 
 row.className="";
-dynamic.innerHTML="--";
+dynamic.innerHTML="";
 let newStatus=this.value;
 
+/* INTERESTED */
 if(newStatus==="Interested"){
 row.classList.add("interested");
+db.collection("leads").doc(lead.id).update({status:newStatus});
 }
 
+/* NOT INTERESTED */
 if(newStatus==="Not Interested"){
 row.classList.add("notinterested");
+db.collection("leads").doc(lead.id).update({status:newStatus});
 }
 
+/* FOLLOW UP (CLOCK PICKER) */
 if(newStatus==="Follow Up"){
+
 row.classList.add("interested");
-let time=prompt("Enter follow up time (HH:MM)");
-if(time){
+
+let timeInput=document.createElement("input");
+timeInput.type="time";
+dynamic.appendChild(timeInput);
+
+timeInput.addEventListener("change",function(){
+
 let now=new Date();
-let parts=time.split(":");
+let parts=this.value.split(":");
 now.setHours(parts[0]);
 now.setMinutes(parts[1]);
+
 let target=now.getTime();
 
 db.collection("leads").doc(lead.id).update({
@@ -332,12 +385,15 @@ followUpTime:target
 });
 
 startTimer(dynamic,row,target);
-}
+
+});
 return;
 }
 
+/* SWITCH OFF AUTO 8 HOURS */
 if(newStatus==="Switch Off"){
 row.classList.add("switch");
+
 let target=Date.now()+8*60*60*1000;
 
 db.collection("leads").doc(lead.id).update({
@@ -349,26 +405,34 @@ startTimer(dynamic,row,target);
 return;
 }
 
-if(newStatus==="Wrong Number"){
-row.classList.add("wrong");
-db.collection("leads").doc(lead.id).update({status:newStatus});
+/* JOINED (FORCE AMOUNT) */
+if(newStatus==="Joined"){
+
+row.classList.add("joined");
+
+let amount="";
+while(!amount){
+amount=prompt("Enter Amount Paid (Required)");
+if(amount===null){
+select.value="New";
 return;
 }
+}
 
-if(newStatus==="Joined"){
-row.classList.add("joined");
-let amount=prompt("Enter Amount Paid (Required)");
-if(amount){
 db.collection("leads").doc(lead.id).update({
 status:newStatus,
 amount:parseInt(amount)
 });
+
 dynamic.innerHTML="₹"+amount;
-}
 return;
 }
 
+/* WRONG NUMBER */
+if(newStatus==="Wrong Number"){
+row.classList.add("wrong");
 db.collection("leads").doc(lead.id).update({status:newStatus});
+}
 
 });
 
