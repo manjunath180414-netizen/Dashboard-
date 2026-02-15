@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Agent Dashboard - HIS CRM</title>
+  <title>Agent Dashboard - HIS Academy</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -11,125 +11,184 @@
   <style>
     body{
       margin:0;
-      font-family:Arial;
-      background:#0f172a;
+      font-family:'Segoe UI', sans-serif;
+      background: linear-gradient(135deg,#0f172a,#1e293b);
       color:white;
+      min-height:100vh;
     }
 
     header{
-      background:#1e293b;
-      padding:15px;
+      background: rgba(30,41,59,0.8);
+      backdrop-filter: blur(10px);
+      padding:18px;
       display:flex;
       justify-content:space-between;
       align-items:center;
+      border-bottom:1px solid rgba(255,255,255,0.1);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+
+    .title{
+      font-size:18px;
+      font-weight:bold;
+    }
+
+    .welcome{
+      font-size:14px;
+      opacity:0.8;
     }
 
     .container{
       padding:20px;
     }
 
-    .cards{
+    .stats{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-      gap:10px;
-      margin-bottom:20px;
+      gap:15px;
+      margin-bottom:25px;
     }
 
-    .card{
-      background:#1e293b;
-      padding:15px;
-      border-radius:8px;
+    .stat-box{
+      background: rgba(255,255,255,0.05);
+      padding:20px;
+      border-radius:15px;
       text-align:center;
+      cursor:pointer;
+      transition:0.3s;
+      box-shadow:0 4px 20px rgba(0,0,0,0.4);
     }
 
-    .filters button{
-      margin:5px;
-      padding:8px 12px;
-      border:none;
-      border-radius:5px;
-      cursor:pointer;
+    .stat-box:hover{
+      transform:translateY(-4px);
       background:#2563eb;
-      color:white;
+    }
+
+    .stat-number{
+      font-size:22px;
+      font-weight:bold;
+      margin-top:8px;
     }
 
     .lead-card{
-      background:#1e293b;
-      padding:15px;
+      background: rgba(255,255,255,0.05);
+      padding:18px;
+      border-radius:15px;
       margin-bottom:15px;
-      border-radius:8px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.4);
+      transition:0.3s;
+    }
+
+    .lead-card:hover{
+      transform:scale(1.01);
     }
 
     .blink{
+      border:2px solid #ef4444;
       animation: blink 1s infinite;
-      border:2px solid red;
     }
 
     @keyframes blink{
       0%{opacity:1;}
-      50%{opacity:0.5;}
+      50%{opacity:0.6;}
       100%{opacity:1;}
     }
 
-    .status-btn{
-      margin:3px;
-      padding:5px 8px;
-      border:none;
-      border-radius:4px;
+    .phone{
+      color:#22c55e;
       cursor:pointer;
+      font-weight:bold;
     }
 
-    .copy-phone{
+    .buttons button{
+      margin-top:8px;
+      margin-right:6px;
+      padding:6px 10px;
+      border:none;
+      border-radius:8px;
       cursor:pointer;
-      color:#22c55e;
+      font-size:12px;
+      color:white;
     }
+
+    .btn-int{ background:#22c55e; }
+    .btn-call{ background:#facc15; color:black; }
+    .btn-sw{ background:#ef4444; }
+    .btn-join{ background:#3b82f6; }
+
+    .toast{
+      position:fixed;
+      bottom:20px;
+      left:50%;
+      transform:translateX(-50%);
+      background:#22c55e;
+      padding:10px 20px;
+      border-radius:20px;
+      display:none;
+      font-size:14px;
+    }
+
   </style>
 </head>
 
 <body>
 
 <header>
-  <h3 id="welcome">Welcome</h3>
+  <div>
+    <div class="title">HIS Academy - Agent Dashboard</div>
+    <div class="welcome" id="welcomeText"></div>
+  </div>
   <button onclick="logout()">Logout</button>
 </header>
 
 <div class="container">
 
-  <!-- STATS -->
-  <div class="cards">
-    <div class="card">Total<br><span id="total">0</span></div>
-    <div class="card">Interested<br><span id="interested">0</span></div>
-    <div class="card">Call Back<br><span id="callback">0</span></div>
-    <div class="card">Joined<br><span id="joined">0</span></div>
-    <div class="card">Switched Off<br><span id="switched">0</span></div>
-  </div>
+  <!-- STAT BOXES -->
+  <div class="stats">
+    <div class="stat-box" onclick="setFilter('All')">
+      Total Leads
+      <div class="stat-number" id="totalCount">0</div>
+    </div>
 
-  <!-- FILTERS -->
-  <div class="filters">
-    <button onclick="setFilter('All')">All</button>
-    <button onclick="setFilter('Interested')">Interested</button>
-    <button onclick="setFilter('Call Back')">Call Back</button>
-    <button onclick="setFilter('Joined')">Joined</button>
-    <button onclick="setFilter('Switched Off')">Switched Off</button>
+    <div class="stat-box" onclick="setFilter('Interested')">
+      Interested
+      <div class="stat-number" id="intCount">0</div>
+    </div>
+
+    <div class="stat-box" onclick="setFilter('Call Back')">
+      Call Back
+      <div class="stat-number" id="callCount">0</div>
+    </div>
+
+    <div class="stat-box" onclick="setFilter('Joined')">
+      Joined
+      <div class="stat-number" id="joinCount">0</div>
+    </div>
+
+    <div class="stat-box" onclick="setFilter('Switched Off')">
+      Switched Off
+      <div class="stat-number" id="swCount">0</div>
+    </div>
   </div>
 
   <!-- LEADS -->
-  <div id="leadList"></div>
+  <div id="leadContainer"></div>
 
 </div>
+
+<div class="toast" id="toast">Number Copied</div>
 
 <script>
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
-  authDomain: "dashboard-bd51c.firebaseapp.com",
-  projectId: "dashboard-bd51c",
-  storageBucket: "dashboard-bd51c.firebasestorage.app",
-  messagingSenderId: "689809644516",
-  appId: "1:689809644516:web:75d6051b300983afb545f1"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -141,7 +200,8 @@ auth.onAuthStateChanged(user=>{
     window.location.href="index.html";
   }else{
     currentUID=user.uid;
-    document.getElementById("welcome").innerText="Welcome, "+user.displayName;
+    document.getElementById("welcomeText").innerText =
+      "Welcome, "+user.displayName+" 👋";
     loadLeads();
   }
 });
@@ -151,54 +211,57 @@ function loadLeads(){
   .where("assignedTo","==",currentUID)
   .onSnapshot(snapshot=>{
 
+    let total=0,int=0,call=0,join=0,sw=0;
     let html="";
-    let total=0, interested=0, callback=0, joined=0, switchedOff=0;
 
     snapshot.forEach(doc=>{
       const data=doc.data();
       total++;
 
-      if(data.status==="Interested") interested++;
-      if(data.status==="Call Back") callback++;
-      if(data.status==="Joined") joined++;
-      if(data.status==="Switched Off") switchedOff++;
+      if(data.status==="Interested") int++;
+      if(data.status==="Call Back") call++;
+      if(data.status==="Joined") join++;
+      if(data.status==="Switched Off") sw++;
 
       if(currentFilter==="All" || data.status===currentFilter){
 
-        let blinkClass="";
+        let blink="";
         if(data.callbackTime){
-          const now=new Date().getTime();
+          const now=Date.now();
           const diff=data.callbackTime-now;
           if(diff<=1800000 && diff>0){
-            blinkClass="blink";
+            blink="blink";
           }
         }
 
         html+=`
-        <div class="lead-card ${blinkClass}">
+        <div class="lead-card ${blink}">
           <b>${data.studentName}</b><br>
-          <span class="copy-phone" onclick="copyPhone('${data.phone}')">
-            ${data.phone} (Click to Copy)
+          <span class="phone" onclick="copyNumber('${data.phone}')">
+            ${data.phone}
           </span><br>
           Course: ${data.course || ''}<br>
           Status: ${data.status || 'New'}<br>
+          ${data.amount ? 'Amount Collected: ₹'+data.amount : ''}
 
-          <button class="status-btn" onclick="updateStatus('${doc.id}','Interested')">Interested</button>
-          <button class="status-btn" onclick="setCallback('${doc.id}')">Call Back</button>
-          <button class="status-btn" onclick="updateStatus('${doc.id}','Switched Off')">Switched Off</button>
-          <button class="status-btn" onclick="markJoined('${doc.id}')">Joined</button>
+          <div class="buttons">
+            <button class="btn-int" onclick="updateStatus('${doc.id}','Interested')">Interested</button>
+            <button class="btn-call" onclick="setCallback('${doc.id}')">Call Back</button>
+            <button class="btn-sw" onclick="updateStatus('${doc.id}','Switched Off')">Switched Off</button>
+            <button class="btn-join" onclick="markJoined('${doc.id}')">Joined</button>
+          </div>
         </div>
         `;
       }
 
     });
 
-    document.getElementById("leadList").innerHTML=html;
-    document.getElementById("total").innerText=total;
-    document.getElementById("interested").innerText=interested;
-    document.getElementById("callback").innerText=callback;
-    document.getElementById("joined").innerText=joined;
-    document.getElementById("switched").innerText=switchedOff;
+    document.getElementById("leadContainer").innerHTML=html;
+    document.getElementById("totalCount").innerText=total;
+    document.getElementById("intCount").innerText=int;
+    document.getElementById("callCount").innerText=call;
+    document.getElementById("joinCount").innerText=join;
+    document.getElementById("swCount").innerText=sw;
 
   });
 }
@@ -216,20 +279,18 @@ function updateStatus(id,status){
 }
 
 function setCallback(id){
-  let minutes=prompt("Call back after how many minutes?");
-  if(!minutes) return;
-
-  let time=new Date().getTime()+minutes*60000;
+  let mins=prompt("Call back after how many minutes?");
+  if(!mins) return;
 
   db.collection("leads").doc(id).update({
     status:"Call Back",
-    callbackTime:time,
+    callbackTime: Date.now() + (mins*60000),
     updatedAt:new Date()
   });
 }
 
 function markJoined(id){
-  let amount=prompt("Enter Amount Paid:");
+  let amount=prompt("Enter Amount Collected:");
   if(!amount) return;
 
   db.collection("leads").doc(id).update({
@@ -239,9 +300,11 @@ function markJoined(id){
   });
 }
 
-function copyPhone(phone){
-  navigator.clipboard.writeText(phone);
-  alert("Phone Copied: "+phone);
+function copyNumber(number){
+  navigator.clipboard.writeText(number);
+  const toast=document.getElementById("toast");
+  toast.style.display="block";
+  setTimeout(()=>{ toast.style.display="none"; },1500);
 }
 
 function logout(){
@@ -254,4 +317,3 @@ function logout(){
 
 </body>
 </html>
-
