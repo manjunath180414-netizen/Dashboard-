@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HIS Academy - Agent Dashboard</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<style>
+body{
+margin:0;
+font-family:Segoe UI;
+background:linear-gradient(135deg,#0f172a,#1e293b);
+color:white;
+}
+
+.container{padding:20px;}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
+}
+
+.slogan{
+font-size:18px;
+font-weight:600;
+}
+
+.date{
+font-size:12px;
+color:#94a3b8;
+}
+
+.welcome{
+margin-bottom:20px;
+color:#cbd5e1;
+}
+
+.date-filter{
+background:#1e293b;
+border:none;
+color:white;
+padding:6px;
+border-radius:8px;
+cursor:pointer;
+}
+
+.box-row{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:12px;
+margin-bottom:12px;
+}
+
+.box-row-4{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:12px;
+margin-bottom:20px;
+}
+
+.box{
+background:rgba(59,130,246,0.15);
+border:1px solid rgba(59,130,246,0.4);
+border-radius:14px;
+padding:15px;
+text-align:center;
+cursor:pointer;
+transition:0.3s;
+}
+
+.box.active{
+background:rgba(59,130,246,0.35);
+box-shadow:0 0 20px rgba(59,130,246,0.6);
+}
+
+.box h2{
+margin:0;
+font-size:20px;
+}
+
+.box p{
+margin:4px 0 0;
+font-size:12px;
+}
+
+.lead-card{
+background:rgba(255,255,255,0.05);
+border-radius:16px;
+padding:15px;
+margin-bottom:14px;
+transition:0.3s;
+box-shadow:0 4px 20px rgba(0,0,0,0.4);
+}
+
+.glow-green{background:rgba(34,197,94,0.2);}
+.glow-teal{background:rgba(20,184,166,0.2);}
+.glow-orange{background:rgba(245,158,11,0.2);}
+.glow-red{background:rgba(239,68,68,0.35);}
+.blink{animation:blink 1s infinite;}
+
+@keyframes blink{
+0%{opacity:1;}
+50%{opacity:0.7;}
+100%{opacity:1;}
+}
+
+.top-row{
+display:flex;
+justify-content:space-between;
+font-weight:600;
+}
+
+.phone{
+color:#22c55e;
+cursor:pointer;
+}
+
+select,input,textarea{
+width:100%;
+margin-top:8px;
+padding:8px;
+border-radius:8px;
+border:none;
+background:#1e293b;
+color:white;
+}
+
+.error{
+color:#f87171;
+font-size:12px;
+margin-top:4px;
+}
+
+.toast{
+position:fixed;
+bottom:20px;
+left:50%;
+transform:translateX(-50%);
+background:#22c55e;
+padding:6px 12px;
+border-radius:20px;
+display:none;
+font-size:12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+<div>
+<div class="slogan">HIS Academy – Let us change the way students study</div>
+<div class="date" id="todayDate"></div>
+</div>
+<input type="date" class="date-filter" id="datePicker">
+</div>
+
+<div class="welcome" id="welcomeText"></div>
+
+<!-- 3 BOXES -->
+<div class="box-row">
+<div class="box" onclick="setFilter('assignedToday')" id="assignedBox">
+<h2 id="assignedToday">0</h2>
+<p>Assigned Today</p>
+</div>
+<div class="box" onclick="setFilter('calledToday')" id="calledBox">
+<h2 id="calledToday">0</h2>
+<p>Called Today</p>
+</div>
+<div class="box" onclick="setFilter('pendingToday')" id="pendingBox">
+<h2 id="pendingToday">0</h2>
+<p>Pending Today</p>
+</div>
+</div>
+
+<!-- 4 BOXES -->
+<div class="box-row-4">
+<div class="box" onclick="setFilter('Interested')" id="interestedBox">
+<h2 id="interestedCount">0</h2>
+<p>Interested</p>
+</div>
+<div class="box" onclick="setFilter('Not Interested')" id="notInterestedBox">
+<h2 id="notInterestedCount">0</h2>
+<p>Not Interested</p>
+</div>
+<div class="box" onclick="setFilter('Follow Up')" id="followUpBox">
+<h2 id="followUpCount">0</h2>
+<p>Follow Up</p>
+</div>
+<div class="box" onclick="setFilter('Joined')" id="joinedBox">
+<h2 id="joinedCount">0</h2>
+<p>Joined</p>
+</div>
+</div>
+
+<div id="leadsContainer"></div>
+
+</div>
+
+<div class="toast" id="toast">Number Copied</div>
+
+<script>
+
+const firebaseConfig = {
+apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+authDomain: "dashboard-bd51c.firebaseapp.com",
+projectId: "dashboard-bd51c",
+storageBucket: "dashboard-bd51c.firebasestorage.app",
+messagingSenderId: "689809644516",
+appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.firestore();
+
+let currentUID="";
+let currentFilter="all";
+let selectedDate=null;
+
+document.getElementById("todayDate").innerText=
+new Date().toDateString();
+
+document.getElementById("datePicker").addEventListener("change",function(){
+selectedDate=this.value;
+loadLeads();
+});
+
+auth.onAuthStateChanged(user=>{
+if(!user){window.location.href="index.html";}
+else{
+currentUID=user.uid;
+document.getElementById("welcomeText").innerText="Welcome, "+user.displayName;
+loadLeads();
+}
+});
+
+function setFilter(type){
+currentFilter=type;
+document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));
+event.currentTarget.classList.add("active");
+loadLeads();
+}
+
+function loadLeads(){
+
+db.collection("leads")
+.where("assignedTo","==",currentUID)
+.onSnapshot(snapshot=>{
+
+let assignedToday=0, calledToday=0, pendingToday=0;
+let interested=0, notInterested=0, followUp=0, joined=0;
+
+let html="";
+const today=new Date();
+today.setHours(0,0,0,0);
+
+snapshot.forEach(doc=>{
+const data=doc.data();
+let createdDate=data.createdAt?.toDate?.() || null;
+let updatedDate=data.updatedAt ? new Date(data.updatedAt) : null;
+
+if(createdDate && createdDate>=today) assignedToday++;
+if(updatedDate && updatedDate>=today) calledToday++;
+if(!data.status || data.status==="New") pendingToday++;
+
+if(data.status==="Interested") interested++;
+if(data.status==="Not Interested") notInterested++;
+if(data.status==="Follow Up") followUp++;
+if(data.status==="Joined") joined++;
+
+if(selectedDate){
+let d=new Date(selectedDate);
+d.setHours(0,0,0,0);
+if(!createdDate || createdDate.toDateString()!==d.toDateString()) return;
+}
+
+if(currentFilter==="assignedToday" && !(createdDate>=today)) return;
+if(currentFilter==="calledToday" && !(updatedDate>=today)) return;
+if(currentFilter==="pendingToday" && data.status!=="New") return;
+if(["Interested","Not Interested","Follow Up","Joined"].includes(currentFilter)
+&& data.status!==currentFilter) return;
+
+let cardClass="lead-card";
+if(data.status==="Interested") cardClass+=" glow-green";
+if(data.status==="Joined") cardClass+=" glow-teal";
+if(data.status==="Switched Off") cardClass+=" glow-orange";
+if(data.status==="Wrong Number") cardClass+=" glow-red";
+
+if(data.followUpTime){
+let diff=data.followUpTime-new Date().getTime();
+if(diff<=1800000 && diff>0){
+cardClass+=" glow-red blink";
+}
+}
+
+html+=`
+<div class="${cardClass}">
+<div class="top-row">
+<div>${data.studentName}</div>
+<div class="phone" onclick="copyNumber('${data.phone}')">${data.phone}</div>
+</div>
+
+<select onchange="handleStatus('${doc.id}',this.value)">
+<option ${data.status==="New"?"selected":""}>New</option>
+<option ${data.status==="Interested"?"selected":""}>Interested</option>
+<option ${data.status==="Not Interested"?"selected":""}>Not Interested</option>
+<option ${data.status==="Follow Up"?"selected":""}>Follow Up</option>
+<option ${data.status==="Switched Off"?"selected":""}>Switched Off</option>
+<option ${data.status==="Wrong Number"?"selected":""}>Wrong Number</option>
+<option ${data.status==="Joined"?"selected":""}>Joined</option>
+</select>
+
+<textarea placeholder="Remarks (Compulsory)" id="note-${doc.id}">${data.notes||""}</textarea>
+
+${data.status==="Interested"||data.status==="Follow Up" ? 
+`<input type="time" id="time-${doc.id}" value="${data.followUpDisplay||""}">`:""}
+
+${data.status==="Joined" ? 
+`<input type="number" id="amt-${doc.id}" value="${data.amount||""}" placeholder="Amount Paid">`:""}
+
+<div class="error" id="error-${doc.id}"></div>
+</div>
+`;
+});
+
+document.getElementById("leadsContainer").innerHTML=html;
+
+document.getElementById("assignedToday").innerText=assignedToday;
+document.getElementById("calledToday").innerText=calledToday;
+document.getElementById("pendingToday").innerText=pendingToday;
+document.getElementById("interestedCount").innerText=interested;
+document.getElementById("notInterestedCount").innerText=notInterested;
+document.getElementById("followUpCount").innerText=followUp;
+document.getElementById("joinedCount").innerText=joined;
+
+});
+}
+
+function handleStatus(id,status){
+
+let note=document.getElementById("note-"+id).value.trim();
+let timeInput=document.getElementById("time-"+id);
+let amountInput=document.getElementById("amt-"+id);
+let errorBox=document.getElementById("error-"+id);
+errorBox.innerText="";
+
+if(!note){
+errorBox.innerText="Remarks required";
+return;
+}
+
+if((status==="Interested"||status==="Follow Up") && (!timeInput||!timeInput.value)){
+errorBox.innerText="Follow-up time required";
+return;
+}
+
+if(status==="Joined" && (!amountInput||!amountInput.value)){
+errorBox.innerText="Amount required";
+return;
+}
+
+let updateData={status:status,notes:note,updatedAt:new Date()};
+
+if(status==="Interested"||status==="Follow Up"){
+let now=new Date();
+let parts=timeInput.value.split(":");
+now.setHours(parts[0]);
+now.setMinutes(parts[1]);
+updateData.followUpTime=now.getTime();
+updateData.followUpDisplay=timeInput.value;
+}
+
+if(status==="Switched Off"){
+updateData.followUpTime=new Date().getTime()+8*60*60*1000;
+}
+
+if(status==="Joined"){
+updateData.amount=parseInt(amountInput.value);
+}
+
+db.collection("leads").doc(id).update(updateData);
+}
+
+function copyNumber(phone){
+navigator.clipboard.writeText(phone);
+let toast=document.getElementById("toast");
+toast.style.display="block";
+setTimeout(()=>{toast.style.display="none";},1200);
+}
+
+</script>
+</body>
+</html>
+
