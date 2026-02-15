@@ -180,8 +180,7 @@ font-weight:600;
 </table>
 </div>
 
-
-<script>
+           <script>
 
 const firebaseConfig = {
 apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
@@ -198,8 +197,8 @@ const db = firebase.firestore();
 
 let currentUID="";
 let allLeads=[];
-let currentFilter="All";
 
+/* AUTH */
 auth.onAuthStateChanged(user=>{
 if(!user){
 window.location.href="index.html";
@@ -217,6 +216,7 @@ loadLeads();
 }
 });
 
+/* LOAD LEADS */
 function loadLeads(){
 db.collection("leads")
 .where("assignedTo","==",currentUID)
@@ -233,18 +233,16 @@ updateCounts();
 });
 }
 
+/* RENDER TABLE */
 function renderLeads(){
 
 leadTable.innerHTML="";
 
-let filtered = allLeads.filter(l=>{
-if(currentFilter==="All") return true;
-return l.status===currentFilter;
-});
+allLeads.forEach((lead,index)=>createRow(lead,index));
 
-filtered.forEach((lead,index)=>createRow(lead,index));
 }
 
+/* UPDATE COUNTS */
 function updateCounts(){
 
 let assigned=allLeads.length;
@@ -268,18 +266,6 @@ followUpCount.innerText=followUp;
 joinedCount.innerText=joined;
 }
 
-/* CLICKABLE TOP BOXES */
-document.querySelectorAll(".box").forEach(box=>{
-box.addEventListener("click",function(){
-let label=this.querySelector("p").innerText;
-
-if(label==="Assigned Today") currentFilter="All";
-else currentFilter=label;
-
-renderLeads();
-});
-});
-
 /* TIMER FORMAT */
 function formatTime(seconds){
 let h=Math.floor(seconds/3600);
@@ -288,7 +274,7 @@ let s=seconds%60;
 return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
-/* TIMER START */
+/* TIMER */
 function startTimer(cell,row,targetTime){
 
 let interval=setInterval(()=>{
@@ -299,7 +285,7 @@ cell.innerHTML="Call in "+formatTime(remaining);
 }else{
 cell.innerHTML="Missed Follow Up";
 cell.classList.add("missed");
-row.classList.add("wrong");
+row.style.background="#7f1d1d";
 clearInterval(interval);
 }
 },1000);
@@ -325,7 +311,7 @@ row.innerHTML=`
 <option ${lead.status==="Joined"?"selected":""}>Joined</option>
 </select>
 </td>
-<td class="dynamic"></td>
+<td class="dynamic">${lead.amount?("₹"+lead.amount):"--"}</td>
 `;
 
 let select=row.querySelector("select");
@@ -337,7 +323,7 @@ navigator.clipboard.writeText(lead.phone);
 alert("Number Copied");
 });
 
-/* RESTORE TIMER IF EXISTS */
+/* RESTORE FOLLOWUP TIMER */
 if(lead.followUpTime){
 startTimer(dynamic,row,lead.followUpTime);
 }
@@ -345,32 +331,38 @@ startTimer(dynamic,row,lead.followUpTime);
 /* STATUS CHANGE */
 select.addEventListener("change",function(){
 
+let newStatus=this.value;
+row.style.background="";
 row.className="";
 dynamic.innerHTML="";
-let newStatus=this.value;
 
 /* INTERESTED */
 if(newStatus==="Interested"){
-row.classList.add("interested");
+row.style.borderLeft="6px solid #22c55e";
 db.collection("leads").doc(lead.id).update({status:newStatus});
 }
 
 /* NOT INTERESTED */
 if(newStatus==="Not Interested"){
-row.classList.add("notinterested");
+row.style.borderLeft="6px solid #ef4444";
 db.collection("leads").doc(lead.id).update({status:newStatus});
 }
 
-/* FOLLOW UP (CLOCK PICKER) */
+/* FOLLOW UP WITH CLOCK */
 if(newStatus==="Follow Up"){
-
-row.classList.add("interested");
 
 let timeInput=document.createElement("input");
 timeInput.type="time";
+timeInput.required=true;
 dynamic.appendChild(timeInput);
 
 timeInput.addEventListener("change",function(){
+
+if(!this.value){
+alert("Follow up time required");
+select.value="New";
+return;
+}
 
 let now=new Date();
 let parts=this.value.split(":");
@@ -384,6 +376,7 @@ status:newStatus,
 followUpTime:target
 });
 
+row.style.borderLeft="6px solid #22c55e";
 startTimer(dynamic,row,target);
 
 });
@@ -392,7 +385,6 @@ return;
 
 /* SWITCH OFF AUTO 8 HOURS */
 if(newStatus==="Switch Off"){
-row.classList.add("switch");
 
 let target=Date.now()+8*60*60*1000;
 
@@ -401,14 +393,20 @@ status:newStatus,
 followUpTime:target
 });
 
+row.style.borderLeft="6px solid #991b1b";
 startTimer(dynamic,row,target);
 return;
 }
 
-/* JOINED (FORCE AMOUNT) */
-if(newStatus==="Joined"){
+/* WRONG NUMBER FULL RED */
+if(newStatus==="Wrong Number"){
+row.style.background="#7f1d1d";
+db.collection("leads").doc(lead.id).update({status:newStatus});
+return;
+}
 
-row.classList.add("joined");
+/* JOINED FORCE AMOUNT */
+if(newStatus==="Joined"){
 
 let amount="";
 while(!amount){
@@ -424,15 +422,12 @@ status:newStatus,
 amount:parseInt(amount)
 });
 
+row.style.borderLeft="6px solid #06b6d4";
 dynamic.innerHTML="₹"+amount;
 return;
 }
 
-/* WRONG NUMBER */
-if(newStatus==="Wrong Number"){
-row.classList.add("wrong");
 db.collection("leads").doc(lead.id).update({status:newStatus});
-}
 
 });
 
