@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HIS Academy CRM</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<style>
+body{
+margin:0;
+font-family:'Segoe UI',sans-serif;
+background:linear-gradient(135deg,#050c1f,#0b1b3a);
+color:white;
+}
+
+.header{padding:20px;}
+.title{font-size:20px;color:#7dd3fc;font-weight:600;}
+.welcome{margin-top:5px;color:#cbd5e1;}
+
+.box-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:0 20px;margin-top:10px;}
+.box-row-4{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0 20px;margin-top:10px;}
+
+.box{
+background:rgba(30,64,175,0.25);
+border:1px solid #3b82f6;
+border-radius:14px;
+padding:15px;
+text-align:center;
+box-shadow:0 0 20px rgba(59,130,246,0.6);
+}
+
+.table-container{
+width:92%;
+margin:30px auto;
+background:rgba(15,30,70,0.85);
+border-radius:18px;
+padding:20px;
+box-shadow:0 0 30px #0ea5e9;
+}
+
+table{width:100%;border-collapse:collapse;}
+th,td{padding:14px;text-align:left;}
+th{color:#93c5fd;}
+
+.phone{color:#22c55e;font-weight:600;cursor:pointer;}
+
+select{
+background:#0f172a;
+color:white;
+padding:6px;
+border-radius:8px;
+border:1px solid #38bdf8;
+}
+
+.missed-banner{
+background:#b91c1c;
+padding:10px;
+text-align:center;
+font-weight:bold;
+animation:blink 0.5s infinite;
+cursor:pointer;
+}
+
+@keyframes blink{
+50%{opacity:0.3;}
+}
+
+</style>
+</head>
+<body>
+
+<div id="missedContainer"></div>
+
+<div class="header">
+<div class="title">HIS Academy – Let us change the way students study</div>
+<div class="welcome">Loading...</div>
+</div>
+
+<div class="box-row">
+<div class="box"><h2 id="assignedCount">0</h2><p>Assigned Today</p></div>
+<div class="box"><h2 id="calledCount">0</h2><p>Called Today</p></div>
+<div class="box"><h2 id="pendingCount">0</h2><p>Pending Today</p></div>
+</div>
+
+<div class="box-row-4">
+<div class="box"><h2 id="interestedCount">0</h2><p>Interested</p></div>
+<div class="box"><h2 id="notInterestedCount">0</h2><p>Not Interested</p></div>
+<div class="box"><h2 id="followUpCount">0</h2><p>Follow Up</p></div>
+<div class="box"><h2 id="joinedCount">0</h2><p>Joined</p></div>
+</div>
+
+<div class="table-container">
+<h3>Today's Leads</h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Phone</th>
+<th>Status</th>
+<th>Follow Up / Amount</th>
+</tr>
+</thead>
+<tbody id="leadTable"></tbody>
+</table>
+</div>
+
+<script>
+
+const firebaseConfig={
+apiKey:"AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+authDomain:"dashboard-bd51c.firebaseapp.com",
+projectId:"dashboard-bd51c",
+storageBucket:"dashboard-bd51c.firebasestorage.app",
+messagingSenderId:"689809644516",
+appId:"1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.firestore();
+
+let currentUID="";
+let leadsData=[];
+let missedLeads=[];
+
+auth.onAuthStateChanged(async user=>{
+if(!user){window.location.href="index.html";return;}
+
+currentUID=user.uid;
+
+const userDoc=await db.collection("users").doc(currentUID).get();
+if(!userDoc.exists || userDoc.data().role!=="agent"){
+alert("Access Denied");
+return;
+}
+
+document.querySelector(".welcome").innerText="Welcome, "+userDoc.data().name;
+
+loadLeads();
+});
+
+function loadLeads(){
+db.collection("leads")
+.where("assignedTo","==",currentUID)
+.onSnapshot(snapshot=>{
+
+leadsData=[];
+snapshot.forEach(doc=>{
+leadsData.push({...doc.data(),id:doc.id});
+});
+
+checkMissed();
+renderLeads();
+updateCounts();
+
+});
+}
+
+function checkMissed(){
+missedLeads=[];
+let now=Date.now();
+
+leadsData.forEach(l=>{
+if(l.status==="Follow Up" && l.followUpTime && l.followUpTime<=now){
+missedLeads.push(l);
+}
+});
+
+let container=document.getElementById("missedContainer");
+container.innerHTML="";
+
+if(missedLeads.length>0){
+let div=document.createElement("div");
+div.className="missed-banner";
+div.innerText=missedLeads.length+" Leads Missed Follow Up - CLICK";
+div.onclick=()=>renderLeads(true);
+container.appendChild(div);
+}
+}
+
+function renderLeads(showMissed=false){
+
+leadTable.innerHTML="";
+let list=showMissed?missedLeads:leadsData;
+
+list.forEach(lead=>{
+let row=document.createElement("tr");
+
+row.innerHTML=`
+<td>${lead.studentName}</td>
+<td class="phone">${lead.phone}</td>
+<td>
+<select>
+<option ${lead.status==="New"?"selected":""}>New</option>
+<option ${lead.status==="Interested"?"selected":""}>Interested</option>
+<option ${lead.status==="Not Interested"?"selected":""}>Not Interested</option>
+<option ${lead.status==="Follow Up"?"selected":""}>Follow Up</option>
+<option ${lead.status==="Switch Off"?"selected":""}>Switch Off</option>
+<option ${lead.status==="Wrong Number"?"selected":""}>Wrong Number</option>
+<option ${lead.status==="Joined"?"selected":""}>Joined</option>
+</select>
+</td>
+<td>${lead.amount?("₹"+lead.amount):""}</td>
+`;
+
+let select=row.querySelector("select");
+let dynamic=row.cells[3];
+
+row.querySelector(".phone").onclick=()=>{
+navigator.clipboard.writeText(lead.phone);
+alert("Number Copied");
+};
+
+select.onchange=async function(){
+
+let status=this.value;
+
+/* INTERESTED */
+if(status==="Interested"){
+this.style.background="#22c55e";
+await db.collection("leads").doc(lead.id).update({status});
+}
+
+/* NOT INTERESTED */
+if(status==="Not Interested"){
+this.style.background="#ef4444";
+await db.collection("leads").doc(lead.id).update({status});
+}
+
+/* FOLLOW UP */
+if(status==="Follow Up"){
+
+let input=document.createElement("input");
+input.type="time";
+dynamic.innerHTML="";
+dynamic.appendChild(input);
+
+input.onchange=async function(){
+
+if(!this.value){
+alert("Time required");
+select.value="New";
+return;
+}
+
+let now=new Date();
+let [h,m]=this.value.split(":");
+
+let selected=new Date();
+selected.setHours(h);
+selected.setMinutes(m);
+selected.setSeconds(0);
+
+if(selected<=now) selected.setDate(selected.getDate()+1);
+
+await db.collection("leads").doc(lead.id).update({
+status,
+followUpTime:selected.getTime()
+});
+};
+
+return;
+}
+
+/* SWITCH OFF */
+if(status==="Switch Off"){
+let target=Date.now()+8*60*60*1000;
+await db.collection("leads").doc(lead.id).update({
+status,
+followUpTime:target
+});
+}
+
+/* WRONG NUMBER */
+if(status==="Wrong Number"){
+this.style.background="#7f1d1d";
+await db.collection("leads").doc(lead.id).update({status});
+}
+
+/* JOINED */
+if(status==="Joined"){
+
+let amount="";
+while(!amount){
+amount=prompt("Enter Amount (Required)");
+if(amount===null){select.value="New";return;}
+}
+
+await db.collection("leads").doc(lead.id).update({
+status,
+amount:parseInt(amount)
+});
+
+dynamic.innerText="₹"+amount;
+}
+
+};
+
+leadTable.appendChild(row);
+});
+}
+
+function updateCounts(){
+assignedCount.innerText=leadsData.length;
+calledCount.innerText=leadsData.filter(l=>l.status!=="New").length;
+pendingCount.innerText=leadsData.filter(l=>l.status==="New").length;
+interestedCount.innerText=leadsData.filter(l=>l.status==="Interested").length;
+notInterestedCount.innerText=leadsData.filter(l=>l.status==="Not Interested").length;
+followUpCount.innerText=leadsData.filter(l=>l.status==="Follow Up").length;
+joinedCount.innerText=leadsData.filter(l=>l.status==="Joined").length;
+}
+
+</script>
+</body>
+</html>
+
