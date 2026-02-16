@@ -139,7 +139,6 @@
     <p id="detailAgent"></p>
     <p id="detailAmount"></p>
   </div>
-
   <div class="card">
     <h3>Actions</h3>
     <select id="statusChange">
@@ -155,6 +154,8 @@
     <button onclick="updateStatus()">Update</button>
     <button onclick="resetLead()">Reset as New</button>
     <button onclick="softDelete()">Soft Delete</button>
+      <button onclick="reassignAgent()">Reassign</button>
+
   </div>
 <hr style="margin:15px 0;">
   
@@ -162,7 +163,6 @@
 <h4>Reassign Agent</h4>
 <select id="agentChange">
   <option value="">Select Agent</option>
-  <button onclick="reassignAgent()">Reassign</button>
 </select>
     </div>
 
