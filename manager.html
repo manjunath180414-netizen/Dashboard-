@@ -280,7 +280,8 @@ startManagerTimer();
 
       html+=`
         <tr>
-          <td><input type="checkbox" onchange="toggleSelect('${doc.id}',this)"></td>
+          <td><input type="checkbox" value="${doc.id}" class="leadCheck">
+</td>
           <td>${data.studentName}</td>
           <td>${data.phone}</td>
           <td>${data.assignedTo || "Unassigned"}</td>
