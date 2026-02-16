@@ -141,14 +141,14 @@ Pending Today<br><b id="pendingCount">0</b>
 
 
 <div class="box-row">
-<<div class="filter-box" onclick="filterStatus('Interested')">Interested</div>
+<div class="filter-box" onclick="filterStatus('Interested')">Interested</div>
 
 <div class="filter-box" onclick="filterStatus('Not Interested')">Not Intrested</div>
 
 <div class="filter-box" onclick="filterStatus('Not Received')">Not Received</div>
 
 <div class="filter-box" onclick="filterStatus('Joined')">Joined</div>
-
+</div>
 <div class="divider"></div>
 
 <div class="alert" id="topAlert"></div>
@@ -171,7 +171,6 @@ Pending Today<br><b id="pendingCount">0</b>
 
 </div>
 
-<script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -411,10 +410,7 @@ rows.forEach(r=>{
 r.style.display=r.innerText.includes(status)?"":"none";
 });
 }
-
-</script>
-
-
+  
 </script>
 </body>
 </html>
