@@ -557,14 +557,16 @@ function uploadCSV(){
 }
 
 function bulkAssign(){
-  const agent=document.getElementById("agentSelect").value;
-  selectedLeads.forEach(id=>{
-    db.collection("leads").doc(id).update({
-      assignedTo:agent
-    });
-  });
-  alert("Assigned Successfully");
-}
+  const oldStatus = previousStatus; // make sure you store this before change
+
+db.collection("leads").doc(id).update({
+   status: status,
+   updatedAt: Date.now()
+}).then(() => {
+   logLeadHistory(id, "status_change", oldStatus, status);
+});
+let previousStatus = lead.status;
+
 
 function logout(){
   auth.signOut().then(()=>window.location.href="index.html");
@@ -651,6 +653,47 @@ async function distributeByPercentage(){
     "Successfully Distributed "+totalLeads+" Leads";
 
 }
+function logLeadHistory(leadId, actionType, oldValue, newValue) {
+
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+
+  db.collection("users").doc(user.uid).get().then(userDoc => {
+
+    const userData = userDoc.data();
+
+    db.collection("leads")
+      .doc(leadId)
+      .collection("history")
+      .add({
+        changedByUID: user.uid,
+        changedByName: userData.name || "Unknown",
+        role: userData.role || "manager",
+        actionType: actionType,
+        oldValue: oldValue || null,
+        newValue: newValue || null,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+  });
+
+}
+function deleteLead(id){
+
+  const user = firebase.auth().currentUser;
+
+  db.collection("leads").doc(id).update({
+    deleted: true,
+    deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    deletedBy: user.uid
+  }).then(() => {
+    logLeadHistory(id, "lead_deleted", null, "soft_deleted");
+  });
+
+}
+db.collection("leads")
+.where("deleted", "!=", true)
+.onSnapshot(...)
 
 </script>
 
