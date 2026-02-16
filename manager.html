@@ -128,6 +128,26 @@
   <select id="agentSelect"></select>
   <button onclick="bulkAssign()">Assign Selected</button>
 
+<!-- ADD LEAD SECTION -->
+<h3>Add New Lead</h3>
+
+<div style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+  <input type="text" id="newName" placeholder="Student Name" 
+         style="padding:6px;border-radius:5px;border:none;">
+  
+  <input type="text" id="newPhone" placeholder="Phone" 
+         style="padding:6px;border-radius:5px;border:none;">
+  
+  <input type="text" id="newCourse" placeholder="Course" 
+         style="padding:6px;border-radius:5px;border:none;">
+  
+  <select id="newAssignAgent" 
+          style="padding:6px;border-radius:5px;border:none;"></select>
+  
+  <button onclick="addLead()">Add Lead</button>
+</div>
+
+    
   <!-- LEADS TABLE -->
   <h3>All Leads</h3>
   <table>
@@ -259,7 +279,43 @@ function loadAgents(){
       options+=`<option value="${doc.id}">${doc.data().name}</option>`;
     });
     document.getElementById("agentSelect").innerHTML=options;
+    document.getElementById("newAssignAgent").innerHTML="<option value=''>Unassigned</option>"+options;
+
   });
+}
+function addLead(){
+
+  const name = document.getElementById("newName").value.trim();
+  const phone = document.getElementById("newPhone").value.trim();
+  const course = document.getElementById("newCourse").value.trim();
+  const agent = document.getElementById("newAssignAgent").value;
+
+  if(!name || !phone){
+    alert("Name and Phone are required");
+    return;
+  }
+
+  db.collection("leads").add({
+    studentName: name,
+    phone: phone,
+    course: course || "",
+    assignedTo: agent || null,
+    status: "New",
+    amount: 0,
+    createdAt: Date.now()
+  })
+  .then(()=>{
+    alert("Lead Added Successfully");
+
+    document.getElementById("newName").value="";
+    document.getElementById("newPhone").value="";
+    document.getElementById("newCourse").value="";
+  })
+  .catch(err=>{
+    alert("Error adding lead");
+    console.error(err);
+  });
+
 }
 
 function updateAgentPerformance(snapshot){
