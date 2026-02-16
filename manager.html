@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HIS Academy - Manager Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <style>
+    body{
+      margin:0;
+      font-family:Segoe UI, sans-serif;
+      background:#0f172a;
+      color:white;
+      display:flex;
+    }
+
+    .sidebar{
+      width:220px;
+      background:#111827;
+      height:100vh;
+      padding:20px;
+      box-sizing:border-box;
+      position:fixed;
+    }
+
+    .sidebar h2{
+      margin-bottom:30px;
+    }
+
+    .sidebar div{
+      padding:10px;
+      margin-bottom:10px;
+      cursor:pointer;
+      border-radius:6px;
+    }
+
+    .sidebar div:hover{
+      background:#2563eb;
+    }
+
+    .main{
+      margin-left:220px;
+      padding:20px;
+      flex:1;
+    }
+
+    .card{
+      background:#1e293b;
+      padding:20px;
+      border-radius:10px;
+      margin-bottom:20px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+    }
+
+    th, td{
+      padding:10px;
+      border-bottom:1px solid #334155;
+      text-align:left;
+    }
+
+    button{
+      padding:6px 10px;
+      border:none;
+      border-radius:6px;
+      cursor:pointer;
+      background:#2563eb;
+      color:white;
+    }
+
+    .hidden{
+      display:none;
+    }
+
+    @media(max-width:768px){
+      .sidebar{
+        position:relative;
+        width:100%;
+        height:auto;
+      }
+      .main{
+        margin-left:0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>Manager Portal</h2>
+  <div onclick="showSection('dashboard')">Dashboard</div>
+  <div onclick="showSection('leads')">Leads</div>
+  <div onclick="logout()">Logout</div>
+</div>
+
+<div class="main">
+
+  <h2 id="welcomeText"></h2>
+
+  <!-- DASHBOARD -->
+  <div id="dashboardSection">
+
+    <div class="card">
+      <h3>Total Leads</h3>
+      <h2 id="totalLeads">0</h2>
+    </div>
+
+    <div class="card">
+      <h3>Joined</h3>
+      <h2 id="totalJoined">0</h2>
+    </div>
+
+    <div class="card">
+      <h3>Revenue</h3>
+      <h2 id="totalRevenue">₹0</h2>
+    </div>
+
+  </div>
+
+  <!-- LEADS -->
+  <div id="leadsSection" class="hidden">
+
+    <div class="card">
+      <input type="text" id="searchInput" placeholder="Search by name or phone" onkeyup="searchLeads()" />
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Agent</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody id="leadTable"></tbody>
+      </table>
+    </div>
+
+    <div>
+      <button onclick="previousPage()">Previous</button>
+      <button onclick="nextPage()">Next</button>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let lastVisible = null;
+let firstVisible = null;
+let pageStack = [];
+
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    window.location.href="index.html";
+  } else {
+    db.collection("users").doc(user.uid).get().then(doc=>{
+      if(doc.data().role !== "manager"){
+        window.location.href="index.html";
+      } else {
+        document.getElementById("welcomeText").innerText = "Welcome, " + doc.data().name;
+        loadDashboard();
+        loadLeads();
+      }
+    });
+  }
+});
+
+function showSection(section){
+  document.getElementById("dashboardSection").classList.add("hidden");
+  document.getElementById("leadsSection").classList.add("hidden");
+  document.getElementById(section+"Section").classList.remove("hidden");
+}
+
+function loadDashboard(){
+  db.collection("leads").onSnapshot(snapshot=>{
+    let total=0, joined=0, revenue=0;
+
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+      if(data.deleted) return;
+
+      total++;
+      if(data.status==="Joined"){
+        joined++;
+        revenue += data.amount || 0;
+      }
+    });
+
+    document.getElementById("totalLeads").innerText = total;
+    document.getElementById("totalJoined").innerText = joined;
+    document.getElementById("totalRevenue").innerText = "₹"+revenue;
+  });
+}
+
+function loadLeads(){
+
+  db.collection("leads")
+  .orderBy("createdAt","desc")
+  .limit(25)
+  .get()
+  .then(snapshot=>{
+    renderLeads(snapshot);
+    lastVisible = snapshot.docs[snapshot.docs.length-1];
+  });
+
+}
+
+function renderLeads(snapshot){
+
+  const table = document.getElementById("leadTable");
+  table.innerHTML = "";
+
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    if(data.deleted) return;
+
+    table.innerHTML += `
+      <tr onclick="openLead('${doc.id}')">
+        <td>${data.studentName}</td>
+        <td>${data.phone}</td>
+        <td>${data.status}</td>
+        <td>${data.assignedTo || "Unassigned"}</td>
+        <td>${data.amount || 0}</td>
+      </tr>
+    `;
+  });
+}
+
+function nextPage(){
+  if(!lastVisible) return;
+
+  db.collection("leads")
+  .orderBy("createdAt","desc")
+  .startAfter(lastVisible)
+  .limit(25)
+  .get()
+  .then(snapshot=>{
+    if(snapshot.empty) return;
+    pageStack.push(lastVisible);
+    renderLeads(snapshot);
+    lastVisible = snapshot.docs[snapshot.docs.length-1];
+  });
+}
+
+function previousPage(){
+  if(pageStack.length === 0) return;
+
+  const previous = pageStack.pop();
+
+  db.collection("leads")
+  .orderBy("createdAt","desc")
+  .startAt(previous)
+  .limit(25)
+  .get()
+  .then(snapshot=>{
+    renderLeads(snapshot);
+    lastVisible = snapshot.docs[snapshot.docs.length-1];
+  });
+}
+
+function openLead(id){
+  window.location.href = "manager.html?lead=" + id;
+}
+
+function searchLeads(){
+  const input = document.getElementById("searchInput").value.toLowerCase();
+  const rows = document.querySelectorAll("#leadTable tr");
+
+  rows.forEach(row=>{
+    row.style.display = row.innerText.toLowerCase().includes(input) ? "" : "none";
+  });
+}
+
+function logout(){
+  auth.signOut().then(()=>{
+    window.location.href="index.html";
+  });
+}
+
+</script>
+
+</body>
+</html>
+
