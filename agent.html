@@ -172,138 +172,180 @@ Pending Today<br><b id="pendingCount">0</b>
 </div>
 
 <script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-// CLOCK
-function updateClock(){
-let now=new Date();
-document.getElementById("clock").innerHTML=
-now.toDateString()+" | "+now.toLocaleTimeString();
-}
-setInterval(updateClock,1000);
-updateClock();
+<script>
 
-// LEADS
-const leads=[
-{name:"Rohit",phone:"9876543210"},
-{name:"Sneha",phone:"9845123456"},
-{name:"Arjun",phone:"9123456789"},
-{name:"Priya",phone:"9867891234"},
-{name:"Vinod",phone:"9988776655"},
-{name:"Meera",phone:"9776655443"},
-{name:"Amit",phone:"8899001122"},
-{name:"Nisha",phone:"9334455667"},
-{name:"Rajesh",phone:"9001122334"},
-{name:"Suresh",phone:"9556677889"}
-];
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 let followupTimers=[];
+let currentUID="";
 
-const table=document.getElementById("leadTable");
+// AUTH PROTECTION
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    window.location.href="index.html";
+  }else{
+    currentUID=user.uid;
 
-leads.forEach(lead=>{
-let row=document.createElement("tr");
-
-row.innerHTML=`
-<td>${lead.name}</td>
-<td>${lead.phone}</td>
-<td>
-<select>
-<option>New</option>
-<option>Interested</option>
-<option>Not Interested</option>
-<option>Follow up</option>
-<option>Wrong Number</option>
-<option>Not Received</option>
-<option>Switch Off</option>
-<option>Joined</option>
-</select>
-</td>
-<td class="timer">--</td>
-`;
-
-let select=row.querySelector("select");
-select.addEventListener("change",()=>handleStatus(select));
-
-table.appendChild(row);
+    db.collection("users").doc(user.uid).get().then(doc=>{
+      if(!doc.exists || doc.data().role !== "agent"){
+        window.location.href="index.html";
+      }else{
+        document.querySelector(".sub").innerHTML="Welcome, "+doc.data().name;
+        loadLeads();
+      }
+    });
+  }
 });
-updateStats();
 
-// STATUS LOGIC
+// LOAD LEADS FROM FIRESTORE
+function loadLeads(){
+
+  const table=document.getElementById("leadTable");
+  table.innerHTML="";
+
+  db.collection("leads")
+  .where("assignedTo","==",currentUID)
+  .onSnapshot(snapshot=>{
+
+    table.innerHTML="";
+    followupTimers=[];
+
+    snapshot.forEach(doc=>{
+      const lead=doc.data();
+      const id=doc.id;
+
+      let row=document.createElement("tr");
+
+      row.innerHTML=`
+      <td>${lead.studentName}</td>
+      <td>${lead.phone}</td>
+      <td>
+      <select data-id="${id}">
+      <option ${lead.status==="New"?"selected":""}>New</option>
+      <option ${lead.status==="Interested"?"selected":""}>Interested</option>
+      <option ${lead.status==="Not Interested"?"selected":""}>Not Interested</option>
+      <option ${lead.status==="Follow up"?"selected":""}>Follow up</option>
+      <option ${lead.status==="Wrong Number"?"selected":""}>Wrong Number</option>
+      <option ${lead.status==="Not Received"?"selected":""}>Not Received</option>
+      <option ${lead.status==="Switch Off"?"selected":""}>Switch Off</option>
+      <option ${lead.status==="Joined"?"selected":""}>Joined</option>
+      </select>
+      </td>
+      <td class="timer">${lead.amount ? "₹ "+lead.amount : "--"}</td>
+      `;
+
+      table.appendChild(row);
+
+      let select=row.querySelector("select");
+      select.addEventListener("change",()=>handleStatus(select));
+
+      // Restart timers if followup exists
+      if(lead.followUpTime){
+        let remaining=Math.floor((lead.followUpTime-Date.now())/1000);
+        if(remaining>0){
+          startPreciseTimer(row.querySelector(".timer"),remaining);
+        }
+      }
+
+    });
+
+    updateStats();
+
+  });
+}
+
+// HANDLE STATUS
 function handleStatus(select){
 
+let id=select.dataset.id;
 let row=select.closest("tr");
 let timer=row.querySelector(".timer");
 
 row.className="";
-select.className="status-glow";
 timer.classList.remove("blink");
-updateStats();
 
-// INTERESTED / FOLLOW UP
-if(select.value==="Interested" || select.value==="Follow up"){
+let status=select.value;
 
-select.classList.add("green");
+if(status==="Interested" || status==="Follow up"){
 
-let timeInput=prompt("Enter Call Back Time (HH:MM 24hr format)\nExample: 16:30");
-
+let timeInput=prompt("Enter Call Back Time (HH:MM 24hr format)");
 if(!timeInput || !timeInput.includes(":")){
-select.classList.add("shake");
 select.value="New";
 return;
 }
 
 let parts=timeInput.split(":");
-let hours=parseInt(parts[0]);
-let minutes=parseInt(parts[1]);
-
 let now=new Date();
 let target=new Date();
-target.setHours(hours);
-target.setMinutes(minutes);
+target.setHours(parseInt(parts[0]));
+target.setMinutes(parseInt(parts[1]));
 target.setSeconds(0);
 
-if(target<=now){
-target.setDate(target.getDate()+1);
+if(target<=now) target.setDate(target.getDate()+1);
+
+db.collection("leads").doc(id).update({
+status:status,
+followUpTime:target.getTime(),
+updatedAt:Date.now()
+});
+
 }
 
-let diffSeconds=Math.floor((target-now)/1000);
-
-startPreciseTimer(timer,diffSeconds);
+if(status==="Not Interested"){
+let reason=prompt("Enter Reason:");
+db.collection("leads").doc(id).update({
+status:status,
+reason:reason || "",
+updatedAt:Date.now()
+});
 }
 
-// NOT INTERESTED
-if(select.value==="Not Interested"){
-select.classList.add("red-light");
-timer.innerHTML="--";
+if(status==="Switch Off" || status==="Not Received"){
+let target=Date.now()+8*60*60*1000;
+db.collection("leads").doc(id).update({
+status:status,
+followUpTime:target,
+updatedAt:Date.now()
+});
 }
 
-// SWITCH OFF / NOT RECEIVED
-if(select.value==="Switch Off" || select.value==="Not Received"){
-select.classList.add("red-light");
-startPreciseTimer(timer,18000);
+if(status==="Wrong Number"){
+db.collection("leads").doc(id).update({
+status:status,
+updatedAt:Date.now()
+});
 }
 
-// WRONG NUMBER
-if(select.value==="Wrong Number"){
-row.classList.add("full-red");
-timer.innerHTML="--";
-}
-
-// JOINED
-if(select.value==="Joined"){
-
+if(status==="Joined"){
 let amount=prompt("Enter Amount Paid (₹):");
-
 if(!amount){
-select.classList.add("shake");
 select.value="New";
 return;
 }
-
-row.classList.add("full-green");
-timer.innerHTML="₹ "+amount;
-document.getElementById("topAlert").style.display="none";
+db.collection("leads").doc(id).update({
+status:status,
+amount:parseInt(amount),
+updatedAt:Date.now()
+});
 }
+
+updateStats();
 }
 
 // TIMER
@@ -311,13 +353,9 @@ function startPreciseTimer(cell,seconds){
 
 let remaining=seconds;
 
-let timerObj={cell:cell,remaining:remaining};
-followupTimers.push(timerObj);
-
 let interval=setInterval(()=>{
 
 remaining--;
-timerObj.remaining=remaining;
 
 if(remaining<=0){
 cell.innerHTML="00:00:00";
@@ -338,33 +376,27 @@ if(remaining<=1800){
 cell.classList.add("blink");
 }
 
-updateFollowupAlert();
-
 },1000);
 }
 
-// ALERT
-function updateFollowupAlert(){
+// STATS
+function updateStats(){
+let rows=document.querySelectorAll("#leadTable tr");
+let assigned=rows.length;
+let called=0;
+let pending=0;
 
-let under30=followupTimers.filter(t=>t.remaining>0 && t.remaining<=1800);
+rows.forEach(row=>{
+let status=row.querySelector("select").value;
+if(status!=="New") called++;
+if(status==="New") pending++;
+});
 
-if(under30.length>0){
-
-let minRemaining=Math.min(...under30.map(t=>t.remaining));
-let mins=Math.floor(minRemaining/60);
-
-let alertBox=document.getElementById("topAlert");
-alertBox.style.display="block";
-alertBox.classList.add("blink");
-alertBox.innerHTML=
-under30.length+" Leads follow up in "+mins+" mins";
-
-}else{
-document.getElementById("topAlert").style.display="none";
-}
+document.getElementById("assignedCount").innerText=assigned;
+document.getElementById("calledCount").innerText=called;
+document.getElementById("pendingCount").innerText=pending;
 }
 
-// SEARCH
 function searchLead(){
 let input=document.getElementById("search").value.toLowerCase();
 let rows=document.querySelectorAll("#leadTable tr");
@@ -373,37 +405,15 @@ r.style.display=r.innerText.toLowerCase().includes(input)?"":"none";
 });
 }
 
-// FILTER
 function filterStatus(status){
 let rows=document.querySelectorAll("#leadTable tr");
 rows.forEach(r=>{
 r.style.display=r.innerText.includes(status)?"":"none";
 });
 }
-function updateStats(){
 
-let rows = document.querySelectorAll("#leadTable tr");
+</script>
 
-let assigned = rows.length;
-let called = 0;
-let pending = 0;
-
-rows.forEach(row=>{
-let status = row.querySelector("select").value;
-
-if(status !== "New"){
-called++;
-}
-
-if(status === "New"){
-pending++;
-}
-});
-
-document.getElementById("assignedCount").innerText = assigned;
-document.getElementById("calledCount").innerText = called;
-document.getElementById("pendingCount").innerText = pending;
-}
 
 </script>
 </body>
