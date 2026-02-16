@@ -127,6 +127,41 @@
 
   <!-- LEADS -->
   <div id="leadsSection" class="hidden">
+<!-- LEAD DETAIL VIEW -->
+<div id="leadDetailSection" class="hidden">
+
+  <button onclick="goBack()">⬅ Back to Leads</button>
+
+  <div class="card">
+    <h2 id="detailName"></h2>
+    <p id="detailPhone"></p>
+    <p id="detailStatus"></p>
+    <p id="detailAgent"></p>
+    <p id="detailAmount"></p>
+  </div>
+
+  <div class="card">
+    <h3>Actions</h3>
+    <select id="statusChange">
+      <option value="">Change Status</option>
+      <option>New</option>
+      <option>Interested</option>
+      <option>Follow Up</option>
+      <option>Joined</option>
+      <option>Not Interested</option>
+      <option>Wrong Number</option>
+    </select>
+    <button onclick="updateStatus()">Update</button>
+    <button onclick="resetLead()">Reset as New</button>
+    <button onclick="softDelete()">Soft Delete</button>
+  </div>
+
+  <div class="card">
+    <h3>Activity Timeline</h3>
+    <div id="historyContainer"></div>
+  </div>
+
+</div>
 
     <div class="card">
       <input type="text" id="searchInput" placeholder="Search by name or phone" onkeyup="searchLeads()" />
@@ -186,6 +221,8 @@ auth.onAuthStateChanged(user=>{
         document.getElementById("welcomeText").innerText = "Welcome, " + doc.data().name;
         loadDashboard();
         loadLeads();
+        checkRouting();
+
       }
     });
   }
@@ -302,6 +339,140 @@ function logout(){
     window.location.href="index.html";
   });
 }
+function checkRouting(){
+  const params = new URLSearchParams(window.location.search);
+  const leadId = params.get("lead");
+
+  if(leadId){
+    showLeadDetail(leadId);
+  }
+}
+  function showLeadDetail(id){
+
+  document.getElementById("dashboardSection").classList.add("hidden");
+  document.getElementById("leadsSection").classList.add("hidden");
+  document.getElementById("leadDetailSection").classList.remove("hidden");
+
+  db.collection("leads").doc(id).get().then(doc=>{
+    const data = doc.data();
+
+    document.getElementById("detailName").innerText = data.studentName;
+    document.getElementById("detailPhone").innerText = "Phone: " + data.phone;
+    document.getElementById("detailStatus").innerText = "Status: " + data.status;
+    document.getElementById("detailAgent").innerText = "Agent: " + (data.assignedTo || "Unassigned");
+    document.getElementById("detailAmount").innerText = "Amount: ₹" + (data.amount || 0);
+
+    loadHistory(id);
+  });
+
+}
+
+function loadHistory(leadId){
+
+  const container = document.getElementById("historyContainer");
+  container.innerHTML = "Loading...";
+
+  db.collection("leads")
+  .doc(leadId)
+  .collection("history")
+  .orderBy("timestamp","desc")
+  .onSnapshot(snapshot=>{
+
+    container.innerHTML = "";
+
+    snapshot.forEach(doc=>{
+      const data = doc.data();
+
+      const time = data.timestamp ? new Date(data.timestamp.seconds*1000).toLocaleString() : "";
+
+      container.innerHTML += `
+        <div style="margin-bottom:15px;padding:10px;background:#0f172a;border-left:3px solid #2563eb;">
+          <b>${data.changedByName}</b> (${data.role})<br>
+          Action: ${data.actionType}<br>
+          From: ${data.oldValue || "-"} → To: ${data.newValue || "-"}<br>
+          <small>${time}</small>
+        </div>
+      `;
+    });
+
+  });
+
+}
+function logHistory(leadId, actionType, oldValue, newValue){
+
+  const user = firebase.auth().currentUser;
+
+  db.collection("users").doc(user.uid).get().then(userDoc=>{
+
+    db.collection("leads")
+    .doc(leadId)
+    .collection("history")
+    .add({
+      changedByUID: user.uid,
+      changedByName: userDoc.data().name,
+      role: userDoc.data().role,
+      actionType: actionType,
+      oldValue: oldValue || null,
+      newValue: newValue || null,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+  });
+
+}
+  function updateStatus(){
+
+  const params = new URLSearchParams(window.location.search);
+  const leadId = params.get("lead");
+
+  const newStatus = document.getElementById("statusChange").value;
+  if(!newStatus) return;
+
+  db.collection("leads").doc(leadId).get().then(doc=>{
+    const oldStatus = doc.data().status;
+
+    db.collection("leads").doc(leadId).update({
+      status:newStatus,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(()=>{
+      logHistory(leadId,"status_change",oldStatus,newStatus);
+      showLeadDetail(leadId);
+    });
+
+  });
+
+}
+function resetLead(){
+
+  const params = new URLSearchParams(window.location.search);
+  const leadId = params.get("lead");
+
+  db.collection("leads").doc(leadId).update({
+    status:"New",
+    assignedTo:null
+  }).then(()=>{
+    logHistory(leadId,"lead_reset",null,"New");
+    showLeadDetail(leadId);
+  });
+
+}
+function softDelete(){
+
+  const params = new URLSearchParams(window.location.search);
+  const leadId = params.get("lead");
+
+  db.collection("leads").doc(leadId).update({
+    deleted:true
+  }).then(()=>{
+    logHistory(leadId,"lead_deleted",null,"soft_deleted");
+    window.location.href="manager.html";
+  });
+
+}
+function goBack(){
+  window.location.href="manager.html";
+}
+
 
 </script>
 
