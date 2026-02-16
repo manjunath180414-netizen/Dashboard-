@@ -104,26 +104,59 @@
 <div class="main">
 
   <h2 id="welcomeText"></h2>
+<div id="dashboardSection">
 
-  <!-- DASHBOARD -->
-  <div id="dashboardSection">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;">
 
-    <div class="card">
-      <h3>Total Leads</h3>
+    <div class="card" onclick="filterByStatus('ALL')">
+      <h4>Total Leads</h4>
       <h2 id="totalLeads">0</h2>
     </div>
 
-    <div class="card">
-      <h3>Joined</h3>
+    <div class="card" onclick="filterByStatus('UNASSIGNED')">
+      <h4>Unassigned</h4>
+      <h2 id="totalUnassigned">0</h2>
+    </div>
+
+    <div class="card" onclick="filterByStatus('ASSIGNED')">
+      <h4>Assigned</h4>
+      <h2 id="totalAssigned">0</h2>
+    </div>
+
+    <div class="card" onclick="filterByStatus('Interested')">
+      <h4>Interested</h4>
+      <h2 id="totalInterested">0</h2>
+    </div>
+
+    <div class="card" onclick="filterByStatus('Follow Up')">
+      <h4>Follow Up</h4>
+      <h2 id="totalFollowUp">0</h2>
+    </div>
+
+    <div class="card" onclick="filterByStatus('Joined')">
+      <h4>Joined</h4>
       <h2 id="totalJoined">0</h2>
     </div>
 
-    <div class="card">
-      <h3>Revenue</h3>
-      <h2 id="totalRevenue">₹0</h2>
+    <div class="card" onclick="filterByStatus('Not Interested')">
+      <h4>Not Interested</h4>
+      <h2 id="totalNotInterested">0</h2>
+    </div>
+
+    <div class="card" onclick="filterByStatus('Wrong Number')">
+      <h4>Wrong Number</h4>
+      <h2 id="totalWrong">0</h2>
+    </div>
+
+    <div class="card" onclick="filterByStatus('Deleted')">
+      <h4>Deleted</h4>
+      <h2 id="totalDeleted">0</h2>
     </div>
 
   </div>
+
+</div>
+
 
   <!-- LEADS -->
   <div id="leadsSection" class="hidden">
@@ -272,24 +305,54 @@ function showSection(section){
 }
 
 function loadDashboard(){
+
   db.collection("leads").onSnapshot(snapshot=>{
-    let total=0, joined=0, revenue=0;
+
+    let total = 0;
+    let unassigned = 0;
+    let assigned = 0;
+    let interested = 0;
+    let followUp = 0;
+    let joined = 0;
+    let notInterested = 0;
+    let wrong = 0;
+    let deleted = 0;
 
     snapshot.forEach(doc=>{
-      const data=doc.data();
-      if(data.deleted) return;
+      const data = doc.data();
+
+      if(data.deleted){
+        deleted++;
+        return;
+      }
 
       total++;
-      if(data.status==="Joined"){
-        joined++;
-        revenue += data.amount || 0;
+
+      if(!data.assignedTo){
+        unassigned++;
+      } else {
+        assigned++;
       }
+
+      if(data.status === "Interested") interested++;
+      if(data.status === "Follow Up") followUp++;
+      if(data.status === "Joined") joined++;
+      if(data.status === "Not Interested") notInterested++;
+      if(data.status === "Wrong Number") wrong++;
     });
 
     document.getElementById("totalLeads").innerText = total;
+    document.getElementById("totalUnassigned").innerText = unassigned;
+    document.getElementById("totalAssigned").innerText = assigned;
+    document.getElementById("totalInterested").innerText = interested;
+    document.getElementById("totalFollowUp").innerText = followUp;
     document.getElementById("totalJoined").innerText = joined;
-    document.getElementById("totalRevenue").innerText = "₹"+revenue;
+    document.getElementById("totalNotInterested").innerText = notInterested;
+    document.getElementById("totalWrong").innerText = wrong;
+    document.getElementById("totalDeleted").innerText = deleted;
+
   });
+
 }
 
 function loadLeads(){
@@ -688,6 +751,57 @@ function addBulkLeads(leads){
     statusText.innerText = leads.length + " leads added successfully";
     loadLeads();
   });
+
+}
+function filterByStatus(status){
+
+  showSection('leads');
+
+  db.collection("leads").get().then(snapshot=>{
+    const table = document.getElementById("leadTable");
+    table.innerHTML = "";
+
+    snapshot.forEach(doc=>{
+      const data = doc.data();
+
+      if(status === "ALL" && !data.deleted){
+        addRow(doc.id,data);
+      }
+
+      if(status === "UNASSIGNED" && !data.assignedTo && !data.deleted){
+        addRow(doc.id,data);
+      }
+
+      if(status === "ASSIGNED" && data.assignedTo && !data.deleted){
+        addRow(doc.id,data);
+      }
+
+      if(status === "Deleted" && data.deleted){
+        addRow(doc.id,data);
+      }
+
+      if(data.status === status && !data.deleted){
+        addRow(doc.id,data);
+      }
+
+    });
+
+  });
+
+}
+function addRow(id,data){
+
+  const table = document.getElementById("leadTable");
+
+  table.innerHTML += `
+    <tr onclick="openLead('${id}')">
+      <td>${data.studentName}</td>
+      <td>${data.phone}</td>
+      <td>${data.status}</td>
+      <td>${agentMap[data.assignedTo] || "Unassigned"}</td>
+      <td>${data.amount || 0}</td>
+    </tr>
+  `;
 
 }
 
