@@ -1,37 +1,65 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html>
 <head>
-  <title>Owner Dashboard - HIS CRM</title>
+  <title>HIS Academy - Owner Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Firebase CDN -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body{
       margin:0;
-      font-family:Arial;
+      font-family:Segoe UI, sans-serif;
       background:#0f172a;
       color:white;
+      display:flex;
     }
 
-    header{
-      background:#1e293b;
-      padding:15px;
+    .sidebar{
+      width:220px;
+      background:#111827;
+      height:100vh;
+      padding:20px;
+      box-sizing:border-box;
+    }
+
+    .sidebar h2{
+      margin-bottom:30px;
+      font-size:18px;
+    }
+
+    .sidebar div{
+      padding:10px;
+      margin-bottom:10px;
+      cursor:pointer;
+      border-radius:6px;
+    }
+
+    .sidebar div:hover{
+      background:#2563eb;
+    }
+
+    .main{
+      flex:1;
+      padding:20px;
+      overflow:auto;
+    }
+
+    .topbar{
       display:flex;
       justify-content:space-between;
-      align-items:center;
-    }
-
-    .container{
-      padding:20px;
+      margin-bottom:20px;
     }
 
     .cards{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
       gap:15px;
       margin-bottom:30px;
     }
@@ -46,74 +74,115 @@
     table{
       width:100%;
       border-collapse:collapse;
-      background:#1e293b;
-      margin-top:20px;
+      margin-top:15px;
     }
 
     th,td{
-      padding:12px;
+      padding:10px;
       border-bottom:1px solid #334155;
-      text-align:center;
-    }
-
-    th{
-      background:#111827;
+      text-align:left;
     }
 
     button{
-      padding:8px 15px;
+      padding:6px 10px;
       border:none;
       border-radius:5px;
       cursor:pointer;
-      background:#ef4444;
+      background:#2563eb;
       color:white;
+    }
+
+    input{
+      padding:8px;
+      margin:5px;
+      border-radius:5px;
+      border:none;
+    }
+
+    .hidden{
+      display:none;
     }
   </style>
 </head>
 
 <body>
 
-<header>
-  <h2>Owner Dashboard</h2>
-  <button onclick="logout()">Logout</button>
-</header>
+<div class="sidebar">
+  <h2>HIS Academy</h2>
+  <div onclick="showSection('dashboard')">Dashboard</div>
+  <div onclick="showSection('agents')">Agents</div>
+  <div onclick="showSection('leads')">Leads</div>
+  <div onclick="logout()">Logout</div>
+</div>
 
-<div class="container">
+<div class="main">
 
-  <!-- STAT CARDS -->
-  <div class="cards">
-    <div class="card">
-      <h3>Total Leads</h3>
-      <h2 id="totalLeads">0</h2>
-    </div>
-    <div class="card">
-      <h3>Interested</h3>
-      <h2 id="interested">0</h2>
-    </div>
-    <div class="card">
-      <h3>Joined</h3>
-      <h2 id="joined">0</h2>
-    </div>
-    <div class="card">
-      <h3>Revenue</h3>
-      <h2 id="revenue">₹0</h2>
-    </div>
+  <div class="topbar">
+    <h2>Owner Portal</h2>
+    <div id="ownerName"></div>
   </div>
 
-  <!-- AGENT PERFORMANCE TABLE -->
-  <h3>Agent Performance</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Agent</th>
-        <th>Total Leads</th>
-        <th>Interested</th>
-        <th>Joined</th>
-      </tr>
-    </thead>
-    <tbody id="agentTable">
-    </tbody>
-  </table>
+  <!-- DASHBOARD -->
+  <div id="dashboardSection">
+    <div class="cards">
+      <div class="card">
+        <h3>Total Leads</h3>
+        <h2 id="totalLeads">0</h2>
+      </div>
+      <div class="card">
+        <h3>Total Revenue</h3>
+        <h2 id="totalRevenue">₹0</h2>
+      </div>
+      <div class="card">
+        <h3>Total Agents</h3>
+        <h2 id="totalAgents">0</h2>
+      </div>
+      <div class="card">
+        <h3>Total Joined</h3>
+        <h2 id="totalJoined">0</h2>
+      </div>
+    </div>
+
+    <canvas id="revenueChart"></canvas>
+  </div>
+
+  <!-- AGENTS -->
+  <div id="agentsSection" class="hidden">
+    <h3>Create Agent</h3>
+    <input type="text" id="agentName" placeholder="Name">
+    <input type="email" id="agentEmail" placeholder="Email">
+    <input type="password" id="agentPassword" placeholder="Password">
+    <button onclick="createAgent()">Create Agent</button>
+
+    <h3>All Agents</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody id="agentTable"></tbody>
+    </table>
+  </div>
+
+  <!-- LEADS -->
+  <div id="leadsSection" class="hidden">
+    <h3>All Leads</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Amount</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody id="leadTable"></tbody>
+    </table>
+  </div>
 
 </div>
 
@@ -130,118 +199,128 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+const auth=firebase.auth();
+const db=firebase.firestore();
 
-
-// Protect Route (Only Owner Access)
 auth.onAuthStateChanged(user=>{
   if(!user){
     window.location.href="index.html";
-  }else{
-    db.collection("users").doc(user.uid).get()
-    .then(doc=>{
-        if(doc.data().role !== "owner"){
-            alert("Access Denied");
-            window.location.href="index.html";
-        }
-        else{
-            loadDashboard();
-        }
+  } else {
+    db.collection("users").doc(user.uid).get().then(doc=>{
+      if(doc.data().role!=="owner"){
+        window.location.href="index.html";
+      } else {
+        document.getElementById("ownerName").innerText="Welcome, "+doc.data().name;
+        loadDashboard();
+        loadAgents();
+        loadLeads();
+      }
     });
   }
 });
 
+function showSection(section){
+  document.getElementById("dashboardSection").classList.add("hidden");
+  document.getElementById("agentsSection").classList.add("hidden");
+  document.getElementById("leadsSection").classList.add("hidden");
+
+  document.getElementById(section+"Section").classList.remove("hidden");
+}
 
 function loadDashboard(){
-
-  let totalLeads=0;
-  let interested=0;
-  let joined=0;
-  let revenue=0;
-
   db.collection("leads").onSnapshot(snapshot=>{
-
-    totalLeads=snapshot.size;
-    interested=0;
-    joined=0;
-    revenue=0;
+    let total=0,revenue=0,joined=0;
 
     snapshot.forEach(doc=>{
       const data=doc.data();
-
-      if(data.status==="Interested") interested++;
+      total++;
       if(data.status==="Joined"){
-          joined++;
-          revenue += data.amount || 0;
+        joined++;
+        revenue+=data.amount||0;
       }
     });
 
-    document.getElementById("totalLeads").innerText=totalLeads;
-    document.getElementById("interested").innerText=interested;
-    document.getElementById("joined").innerText=joined;
-    document.getElementById("revenue").innerText="₹"+revenue;
+    document.getElementById("totalLeads").innerText=total;
+    document.getElementById("totalRevenue").innerText="₹"+revenue;
+    document.getElementById("totalJoined").innerText=joined;
   });
-
-  loadAgentPerformance();
-}
-
-
-// Agent Performance
-function loadAgentPerformance(){
 
   db.collection("users").where("role","==","agent")
   .onSnapshot(snapshot=>{
-
-    let html="";
-
-    snapshot.forEach(userDoc=>{
-      const agentId=userDoc.id;
-      const agentName=userDoc.data().name;
-
-      db.collection("leads")
-      .where("assignedTo","==",agentId)
-      .get()
-      .then(leadSnap=>{
-
-        let total=leadSnap.size;
-        let interested=0;
-        let joined=0;
-
-        leadSnap.forEach(lead=>{
-          const data=lead.data();
-          if(data.status==="Interested") interested++;
-          if(data.status==="Joined") joined++;
-        });
-
-        html+=`
-          <tr>
-            <td>${agentName}</td>
-            <td>${total}</td>
-            <td>${interested}</td>
-            <td>${joined}</td>
-          </tr>
-        `;
-
-        document.getElementById("agentTable").innerHTML=html;
-
-      });
-
-    });
-
+    document.getElementById("totalAgents").innerText=snapshot.size;
   });
-
 }
 
-
-// Logout
-function logout(){
-  auth.signOut().then(()=>{
-    window.location.href="index.html";
+function loadAgents(){
+  db.collection("users").where("role","==","agent")
+  .onSnapshot(snapshot=>{
+    let html="";
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+      html+=`
+        <tr>
+          <td>${data.name}</td>
+          <td>${data.email||""}</td>
+          <td><button onclick="deleteAgent('${doc.id}')">Delete</button></td>
+        </tr>
+      `;
+    });
+    document.getElementById("agentTable").innerHTML=html;
   });
+}
+
+function createAgent(){
+  const name=document.getElementById("agentName").value;
+  const email=document.getElementById("agentEmail").value;
+  const password=document.getElementById("agentPassword").value;
+
+  if(!name||!email||!password) return alert("Fill all fields");
+
+  auth.createUserWithEmailAndPassword(email,password)
+  .then(userCredential=>{
+    return db.collection("users").doc(userCredential.user.uid).set({
+      name:name,
+      email:email,
+      role:"agent"
+    });
+  })
+  .then(()=>alert("Agent Created"));
+}
+
+function deleteAgent(uid){
+  db.collection("users").doc(uid).delete();
+}
+
+function loadLeads(){
+  db.collection("leads").onSnapshot(snapshot=>{
+    let html="";
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+      html+=`
+        <tr>
+          <td>${data.studentName}</td>
+          <td>${data.phone}</td>
+          <td>${data.status}</td>
+          <td>${data.amount||0}</td>
+          <td><button onclick="deleteLead('${doc.id}')">Delete</button></td>
+        </tr>
+      `;
+    });
+    document.getElementById("leadTable").innerHTML=html;
+  });
+}
+
+function deleteLead(id){
+  db.collection("leads").doc(id).delete();
+}
+
+function logout(){
+  auth.signOut().then(()=>window.location.href="index.html");
 }
 
 </script>
 
 </body>
 </html>
+
+        
