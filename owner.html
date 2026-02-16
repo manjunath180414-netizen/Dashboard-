@@ -143,7 +143,11 @@
       </div>
     </div>
 
-    <canvas id="revenueChart"></canvas>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <canvas id="revenueChart"></canvas>
+  <canvas id="statusChart"></canvas>
+</div>
+
   </div>
 
   <!-- AGENTS -->
@@ -213,6 +217,7 @@ auth.onAuthStateChanged(user=>{
         document.getElementById("ownerName").innerText="Welcome, "+doc.data().name;
         loadDashboard();
         loadAgents();
+        loadCharts();
         loadLeads();
       }
     });
@@ -248,6 +253,87 @@ function loadDashboard(){
   db.collection("users").where("role","==","agent")
   .onSnapshot(snapshot=>{
     document.getElementById("totalAgents").innerText=snapshot.size;
+  });
+}
+let revenueChart;
+let statusChart;
+
+function loadCharts(){
+
+  db.collection("leads").onSnapshot(snapshot=>{
+
+    let revenueByDate = {};
+    let statusCount = {
+      "New":0,
+      "Interested":0,
+      "Follow up":0,
+      "Joined":0,
+      "Not Interested":0,
+      "Wrong Number":0
+    };
+
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+
+      // Count status
+      if(statusCount[data.status] !== undefined){
+        statusCount[data.status]++;
+      }
+
+      // Revenue by date
+      if(data.status==="Joined" && data.amount){
+        let date = new Date(data.updatedAt || Date.now()).toLocaleDateString();
+        revenueByDate[date] = (revenueByDate[date]||0) + data.amount;
+      }
+    });
+
+    const dates = Object.keys(revenueByDate);
+    const revenues = Object.values(revenueByDate);
+
+    // Destroy old charts
+    if(revenueChart) revenueChart.destroy();
+    if(statusChart) statusChart.destroy();
+
+    // Revenue Line Chart
+    revenueChart = new Chart(
+      document.getElementById("revenueChart"),
+      {
+        type:"line",
+        data:{
+          labels:dates,
+          datasets:[{
+            label:"Revenue",
+            data:revenues,
+            borderColor:"#22c55e",
+            backgroundColor:"rgba(34,197,94,0.2)",
+            fill:true
+          }]
+        }
+      }
+    );
+
+    // Status Pie Chart
+    statusChart = new Chart(
+      document.getElementById("statusChart"),
+      {
+        type:"doughnut",
+        data:{
+          labels:Object.keys(statusCount),
+          datasets:[{
+            data:Object.values(statusCount),
+            backgroundColor:[
+              "#3b82f6",
+              "#facc15",
+              "#fb923c",
+              "#22c55e",
+              "#94a3b8",
+              "#ef4444"
+            ]
+          }]
+        }
+      }
+    );
+
   });
 }
 
