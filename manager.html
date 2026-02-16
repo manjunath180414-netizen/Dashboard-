@@ -135,6 +135,13 @@
   <input type="text" id="newCourse" placeholder="Course">
   <button onclick="addLead()">Add Lead</button>
 </div>
+    <div class="card">
+  <h3>Upload CSV Leads</h3>
+  <input type="file" id="csvFile" accept=".csv">
+  <button onclick="uploadCSV()">Upload</button>
+  <p id="csvStatus"></p>
+</div>
+
 
 <div id="leadDetailSection" class="hidden">
 
@@ -579,7 +586,110 @@ function reassignAgent(){
   });
 
 }
- 
+ function uploadCSV(){
+
+  const fileInput = document.getElementById("csvFile");
+  const statusText = document.getElementById("csvStatus");
+
+  if(!fileInput.files.length){
+    alert("Select a CSV file");
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+
+    const text = e.target.result;
+    const rows = text.split("\n");
+
+    let leadsToAdd = [];
+    let phoneSet = new Set();
+
+    rows.forEach(row=>{
+      const cols = row.split(",");
+
+      if(cols.length < 2) return;
+
+      const name = cols[0].trim();
+      let phone = cols[1].trim();
+
+      phone = phone.replace(/\D/g, "");
+
+      if(phone.length < 10) return;
+
+      if(!phoneSet.has(phone)){
+        phoneSet.add(phone);
+        leadsToAdd.push({
+          studentName: name,
+          phone: phone
+        });
+      }
+    });
+
+    removeExistingNumbers(leadsToAdd);
+
+  };
+
+  reader.readAsText(file);
+}
+
+function removeExistingNumbers(leads){
+
+  const statusText = document.getElementById("csvStatus");
+  statusText.innerText = "Checking duplicates...";
+
+  db.collection("leads").get().then(snapshot=>{
+
+    let existingNumbers = new Set();
+
+    snapshot.forEach(doc=>{
+      const data = doc.data();
+      if(data.phone){
+        existingNumbers.add(data.phone);
+      }
+    });
+
+    let finalLeads = leads.filter(lead => !existingNumbers.has(lead.phone));
+
+    addBulkLeads(finalLeads);
+
+  });
+
+}
+function addBulkLeads(leads){
+
+  const statusText = document.getElementById("csvStatus");
+
+  if(leads.length === 0){
+    statusText.innerText = "No new leads found (duplicates removed)";
+    return;
+  }
+
+  const batch = db.batch();
+
+  leads.forEach(lead=>{
+    const ref = db.collection("leads").doc();
+    batch.set(ref,{
+      studentName: lead.studentName,
+      phone: lead.phone,
+      course: "",
+      status: "New",
+      assignedTo: null,
+      amount: 0,
+      deleted: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  });
+
+  batch.commit().then(()=>{
+    statusText.innerText = leads.length + " leads added successfully";
+    loadLeads();
+  });
+
+}
 
 
 </script>
