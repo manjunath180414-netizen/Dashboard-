@@ -217,6 +217,7 @@ const db = firebase.firestore();
 let lastVisible = null;
 let firstVisible = null;
 let pageStack = [];
+let agentMap = {};
 
 auth.onAuthStateChanged(user=>{
   if(!user){
@@ -227,6 +228,19 @@ auth.onAuthStateChanged(user=>{
         window.location.href="index.html";
       } else {
         document.getElementById("welcomeText").innerText = "Welcome, " + doc.data().name;
+        function preloadAgents(){
+
+  db.collection("users")
+  .where("role","==","agent")
+  .get()
+  .then(snapshot=>{
+    snapshot.forEach(doc=>{
+      agentMap[doc.id] = doc.data().name;
+    });
+  });
+
+}
+        preloadAgents();
         loadDashboard();
         loadLeads();
         checkRouting();
@@ -290,7 +304,8 @@ function renderLeads(snapshot){
         <td>${data.studentName}</td>
         <td>${data.phone}</td>
         <td>${data.status}</td>
-        <td>${data.assignedTo || "Unassigned"}</td>
+     <td>${agentMap[data.assignedTo] || "Unassigned"}</td>
+
         <td>${data.amount || 0}</td>
       </tr>
     `;
