@@ -143,10 +143,16 @@
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-  <canvas id="revenueChart"></canvas>
-  <canvas id="statusChart"></canvas>
+    <<div class="chart-container">
+  <div class="chart-box">
+    <canvas id="revenueChart"></canvas>
+  </div>
+
+  <div class="chart-box">
+    <canvas id="statusChart"></canvas>
+  </div>
 </div>
+
 
   </div>
 
@@ -402,6 +408,17 @@ function deleteLead(id){
 
 function logout(){
   auth.signOut().then(()=>window.location.href="index.html");
+}
+.chart-container{
+  display:flex;
+  flex-direction:column;
+  gap:30px;
+}
+
+.chart-box{
+  background:#1e293b;
+  padding:20px;
+  border-radius:12px;
 }
 
 </script>
