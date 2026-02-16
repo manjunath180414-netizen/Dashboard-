@@ -107,7 +107,10 @@
   <!-- SUMMARY -->
   <div class="stats">
     <div class="card"><span id="total">0</span>Total</div>
-    <div class="card"><span id="unassigned">0</span>Unassigned</div>
+<div class="card" onclick="filterUnassigned()">
+  <span id="unassigned">0</span>Unassigned
+</div>
+
     <div class="card"><span id="interested">0</span>Interested</div>
     <div class="card"><span id="followup">0</span>Follow Up</div>
     <div class="card"><span id="joined">0</span>Joined</div>
@@ -162,6 +165,14 @@
           style="padding:6px;border-radius:5px;border:none;"></select>
   
   <button onclick="addLead()">Add Lead</button>
+</div>
+<div id="assignSection" style="display:none; margin-bottom:20px;">
+  <h4>Select Agents</h4>
+  <div id="agentCheckboxList"></div>
+
+  <button onclick="assignSelected()">Assign Selected</button>
+  <button onclick="assignEqually()">Assign Equally</button>
+  <button onclick="assignByPercentage()">Assign by %</button>
 </div>
 
     
@@ -220,7 +231,14 @@ auth.onAuthStateChanged(user=>{
 
 function loadLeads(){
 
-  db.collection("leads").onSnapshot(snapshot=>{
+let query = db.collection("leads");
+
+if(currentFilter === "Unassigned"){
+  query = query.where("assignedTo","==",null);
+}
+
+query.onSnapshot(snapshot=>{
+
 
     let total=0, unassigned=0, interested=0, followup=0, joined=0, revenue=0;
     let html="";
@@ -274,6 +292,14 @@ startManagerTimer();
     });
 
     document.getElementById("leadTable").innerHTML=html;
+
+    // Show assign section only when viewing unassigned
+if(currentFilter === "Unassigned"){
+  document.getElementById("assignSection").style.display = "block";
+} else {
+  document.getElementById("assignSection").style.display = "none";
+}
+
     document.getElementById("total").innerText=total;
     document.getElementById("unassigned").innerText=unassigned;
     document.getElementById("interested").innerText=interested;
@@ -285,6 +311,7 @@ startManagerTimer();
 
   });
 }
+    
 
 function loadAgents(){
 
@@ -292,23 +319,19 @@ function loadAgents(){
   .where("role","==","agent")
   .get()
   .then(snapshot=>{
+let checkboxHTML="";
 
-    let options="";
-    let percentageHTML="";
+snapshot.forEach(doc=>{
+  checkboxHTML += `
+    <div>
+      <input type="checkbox" value="${doc.id}" class="agentCheck">
+      ${doc.data().name}
+    </div>
+  `;
+});
 
-    snapshot.forEach(doc=>{
-      options+=`<option value="${doc.id}">${doc.data().name}</option>`;
+document.getElementById("agentCheckboxList").innerHTML = checkboxHTML;
 
-      percentageHTML+=`
-        <div style="margin-bottom:8px;">
-          ${doc.data().name}
-          <input type="number" 
-                 id="percent_${doc.id}" 
-                 placeholder="Enter %" 
-                 style="width:80px;padding:5px;margin-left:10px;">
-        </div>
-      `;
-    });
 
     document.getElementById("agentSelect").innerHTML=options;
     document.getElementById("newAssignAgent").innerHTML="<option value=''>Unassigned</option>"+options;
@@ -651,6 +674,117 @@ async function distributeByPercentage(){
     "Successfully Distributed "+totalLeads+" Leads";
 
 }
+let currentFilter = "All";
+
+function filterUnassigned(){
+  currentFilter = "Unassigned";
+  loadLeads();
+}
+    async function assignEqually(){
+  const selectedAgents = [...document.querySelectorAll(".agentCheck:checked")]
+    .map(cb => cb.value);
+async function assignByPercentage(){
+
+  const selectedAgents = [...document.querySelectorAll(".agentCheck:checked")]
+    .map(cb => cb.value);
+
+  if(selectedAgents.length === 0){
+    alert("Select agents first");
+    return;
+  }
+
+  const selectedLeads = [...document.querySelectorAll(".leadCheck:checked")]
+    .map(cb => cb.value);
+
+  if(selectedLeads.length === 0){
+    alert("Select leads first");
+    return;
+  }
+
+  let percentages = {};
+  let totalPercent = 0;
+
+  for(let agent of selectedAgents){
+    let percent = parseFloat(prompt("Enter % for selected agent"));
+    if(!percent) return;
+    percentages[agent] = percent;
+    totalPercent += percent;
+  }
+
+  if(totalPercent !== 100){
+    alert("Total % must equal 100");
+    return;
+  }
+
+  let totalLeads = selectedLeads.length;
+  let index = 0;
+
+  const batch = db.batch();
+
+  for(let agent of selectedAgents){
+
+    let count = Math.floor((percentages[agent]/100)*totalLeads);
+
+    for(let i=0; i<count && index<totalLeads; i++){
+      batch.update(db.collection("leads").doc(selectedLeads[index]),{
+        assignedTo: agent
+      });
+      index++;
+    }
+  }
+
+  while(index < totalLeads){
+    batch.update(db.collection("leads").doc(selectedLeads[index]),{
+      assignedTo: selectedAgents[0]
+    });
+    index++;
+  }
+
+  await batch.commit();
+  alert("Leads assigned by percentage");
+}
+
+  if(selectedAgents.length === 0){
+    alert("Select at least one agent");
+    return;
+  }
+
+  const selectedLeads = [...document.querySelectorAll(".leadCheck:checked")]
+    .map(cb => cb.value);
+
+  if(selectedLeads.length === 0){
+    alert("Select at least one lead");
+    return;
+  }
+
+  let totalLeads = selectedLeads.length;
+  let totalAgents = selectedAgents.length;
+
+  let perAgent = Math.floor(totalLeads / totalAgents);
+  let index = 0;
+
+  const batch = db.batch();
+
+  selectedAgents.forEach(agent=>{
+    for(let i=0; i<perAgent && index<totalLeads; i++){
+      batch.update(db.collection("leads").doc(selectedLeads[index]),{
+        assignedTo: agent
+      });
+      index++;
+    }
+  });
+
+  while(index < totalLeads){
+    batch.update(db.collection("leads").doc(selectedLeads[index]),{
+      assignedTo: selectedAgents[0]
+    });
+    index++;
+  }
+
+  await batch.commit();
+  alert("Leads assigned equally");
+}
+
 
 </script>
 
