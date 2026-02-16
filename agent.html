@@ -117,6 +117,26 @@ display:none;
 75%{transform:translateX(-5px);}
 100%{transform:translateX(0);}
 }
+  .green-row{
+    background:rgba(34,197,94,0.15);
+    border-left:5px solid #22c55e;
+}
+
+.red-row{
+    background:rgba(239,68,68,0.15);
+    border-left:5px solid #ef4444;
+}
+
+.orange-row{
+    background:rgba(251,191,36,0.15);
+    border-left:5px solid #facc15;
+}
+
+.grey-row{
+    background:rgba(148,163,184,0.15);
+    border-left:5px solid #94a3b8;
+}
+
 </style>
 </head>
 <body>
@@ -253,6 +273,18 @@ function loadLeads(){
 
       let select=row.querySelector("select");
       select.addEventListener("change",()=>handleStatus(select));
+if(lead.status==="Joined"){
+    row.classList.add("green-row");
+}
+if(lead.status==="Wrong Number"){
+    row.classList.add("red-row");
+}
+if(lead.status==="Not Interested"){
+    row.classList.add("grey-row");
+}
+if(lead.status==="Follow up"){
+    row.classList.add("orange-row");
+}
 
       // Restart timers if followup exists
       if(lead.followUpTime){
@@ -276,8 +308,9 @@ let id=select.dataset.id;
 let row=select.closest("tr");
 let timer=row.querySelector(".timer");
 
-row.className="";
+row.classList.remove("green-row","red-row","orange-row","grey-row");
 timer.classList.remove("blink");
+
 
 let status=select.value;
 
@@ -342,6 +375,21 @@ status:status,
 amount:parseInt(amount),
 updatedAt:Date.now()
 });
+}
+if(status==="Joined"){
+    row.classList.add("green-row");
+}
+
+if(status==="Wrong Number"){
+    row.classList.add("red-row");
+}
+
+if(status==="Not Interested"){
+    row.classList.add("grey-row");
+}
+
+if(status==="Follow up" || status==="Interested"){
+    row.classList.add("orange-row");
 }
 
 updateStats();
