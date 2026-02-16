@@ -1,0 +1,412 @@
+        <!DOCTYPE html>
+<html>
+<head>
+  <title>HIS Academy - Owner Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body{
+      margin:0;
+      font-family:Segoe UI, sans-serif;
+      background:#0f172a;
+      color:white;
+      display:flex;
+    }
+
+    .sidebar{
+      width:220px;
+      background:#111827;
+      height:100vh;
+      padding:20px;
+      box-sizing:border-box;
+    }
+
+    .sidebar h2{
+      margin-bottom:30px;
+      font-size:18px;
+    }
+
+    .sidebar div{
+      padding:10px;
+      margin-bottom:10px;
+      cursor:pointer;
+      border-radius:6px;
+    }
+
+    .sidebar div:hover{
+      background:#2563eb;
+    }
+
+    .main{
+      flex:1;
+      padding:20px;
+      overflow:auto;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      margin-bottom:20px;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+      gap:15px;
+      margin-bottom:30px;
+    }
+
+    .card{
+      background:#1e293b;
+      padding:20px;
+      border-radius:10px;
+      text-align:center;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:15px;
+    }
+
+    th,td{
+      padding:10px;
+      border-bottom:1px solid #334155;
+      text-align:left;
+    }
+
+    button{
+      padding:6px 10px;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+      background:#2563eb;
+      color:white;
+    }
+
+    input{
+      padding:8px;
+      margin:5px;
+      border-radius:5px;
+      border:none;
+    }
+
+    .hidden{
+      display:none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>HIS Academy</h2>
+  <div onclick="showSection('dashboard')">Dashboard</div>
+  <div onclick="showSection('agents')">Agents</div>
+  <div onclick="showSection('leads')">Leads</div>
+  <div onclick="logout()">Logout</div>
+</div>
+
+<div class="main">
+
+  <div class="topbar">
+    <h2>Owner Portal</h2>
+    <div id="ownerName"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboardSection">
+    <div class="cards">
+      <div class="card">
+        <h3>Total Leads</h3>
+        <h2 id="totalLeads">0</h2>
+      </div>
+      <div class="card">
+        <h3>Total Revenue</h3>
+        <h2 id="totalRevenue">₹0</h2>
+      </div>
+      <div class="card">
+        <h3>Total Agents</h3>
+        <h2 id="totalAgents">0</h2>
+      </div>
+      <div class="card">
+        <h3>Total Joined</h3>
+        <h2 id="totalJoined">0</h2>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <canvas id="revenueChart"></canvas>
+  <canvas id="statusChart"></canvas>
+</div>
+
+  </div>
+
+  <!-- AGENTS -->
+  <div id="agentsSection" class="hidden">
+    <h3>Create Agent</h3>
+    <input type="text" id="agentName" placeholder="Name">
+    <input type="email" id="agentEmail" placeholder="Email">
+    <input type="password" id="agentPassword" placeholder="Password">
+    <button onclick="createAgent()">Create Agent</button>
+
+    <h3>All Agents</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody id="agentTable"></tbody>
+    </table>
+  </div>
+
+  <!-- LEADS -->
+  <div id="leadsSection" class="hidden">
+    <h3>All Leads</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Amount</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody id="leadTable"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth=firebase.auth();
+const db=firebase.firestore();
+
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    window.location.href="index.html";
+  } else {
+    db.collection("users").doc(user.uid).get().then(doc=>{
+      if(doc.data().role!=="owner"){
+        window.location.href="index.html";
+      } else {
+        document.getElementById("ownerName").innerText="Welcome, "+doc.data().name;
+        loadDashboard();
+        loadAgents();
+        loadCharts();
+        loadLeads();
+      }
+    });
+  }
+});
+
+function showSection(section){
+  document.getElementById("dashboardSection").classList.add("hidden");
+  document.getElementById("agentsSection").classList.add("hidden");
+  document.getElementById("leadsSection").classList.add("hidden");
+
+  document.getElementById(section+"Section").classList.remove("hidden");
+}
+
+function loadDashboard(){
+  db.collection("leads").onSnapshot(snapshot=>{
+    let total=0,revenue=0,joined=0;
+
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+      total++;
+      if(data.status==="Joined"){
+        joined++;
+        revenue+=data.amount||0;
+      }
+    });
+
+    document.getElementById("totalLeads").innerText=total;
+    document.getElementById("totalRevenue").innerText="₹"+revenue;
+    document.getElementById("totalJoined").innerText=joined;
+  });
+
+  db.collection("users").where("role","==","agent")
+  .onSnapshot(snapshot=>{
+    document.getElementById("totalAgents").innerText=snapshot.size;
+  });
+}
+let revenueChart;
+let statusChart;
+
+function loadCharts(){
+
+  db.collection("leads").onSnapshot(snapshot=>{
+
+    let revenueByDate = {};
+    let statusCount = {
+      "New":0,
+      "Interested":0,
+      "Follow up":0,
+      "Joined":0,
+      "Not Interested":0,
+      "Wrong Number":0
+    };
+
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+
+      // Count status
+      if(statusCount[data.status] !== undefined){
+        statusCount[data.status]++;
+      }
+
+      // Revenue by date
+      if(data.status==="Joined" && data.amount){
+        let date = new Date(data.updatedAt || Date.now()).toLocaleDateString();
+        revenueByDate[date] = (revenueByDate[date]||0) + data.amount;
+      }
+    });
+
+    const dates = Object.keys(revenueByDate);
+    const revenues = Object.values(revenueByDate);
+
+    // Destroy old charts
+    if(revenueChart) revenueChart.destroy();
+    if(statusChart) statusChart.destroy();
+
+    // Revenue Line Chart
+    revenueChart = new Chart(
+      document.getElementById("revenueChart"),
+      {
+        type:"line",
+        data:{
+          labels:dates,
+          datasets:[{
+            label:"Revenue",
+            data:revenues,
+            borderColor:"#22c55e",
+            backgroundColor:"rgba(34,197,94,0.2)",
+            fill:true
+          }]
+        }
+      }
+    );
+
+    // Status Pie Chart
+    statusChart = new Chart(
+      document.getElementById("statusChart"),
+      {
+        type:"doughnut",
+        data:{
+          labels:Object.keys(statusCount),
+          datasets:[{
+            data:Object.values(statusCount),
+            backgroundColor:[
+              "#3b82f6",
+              "#facc15",
+              "#fb923c",
+              "#22c55e",
+              "#94a3b8",
+              "#ef4444"
+            ]
+          }]
+        }
+      }
+    );
+
+  });
+}
+
+function loadAgents(){
+  db.collection("users").where("role","==","agent")
+  .onSnapshot(snapshot=>{
+    let html="";
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+      html+=`
+        <tr>
+          <td>${data.name}</td>
+          <td>${data.email||""}</td>
+          <td><button onclick="deleteAgent('${doc.id}')">Delete</button></td>
+        </tr>
+      `;
+    });
+    document.getElementById("agentTable").innerHTML=html;
+  });
+}
+
+function createAgent(){
+  const name=document.getElementById("agentName").value;
+  const email=document.getElementById("agentEmail").value;
+  const password=document.getElementById("agentPassword").value;
+
+  if(!name||!email||!password) return alert("Fill all fields");
+
+  auth.createUserWithEmailAndPassword(email,password)
+  .then(userCredential=>{
+    return db.collection("users").doc(userCredential.user.uid).set({
+      name:name,
+      email:email,
+      role:"agent"
+    });
+  })
+  .then(()=>alert("Agent Created"));
+}
+
+function deleteAgent(uid){
+  db.collection("users").doc(uid).delete();
+}
+
+function loadLeads(){
+  db.collection("leads").onSnapshot(snapshot=>{
+    let html="";
+    snapshot.forEach(doc=>{
+      const data=doc.data();
+      html+=`
+        <tr>
+          <td>${data.studentName}</td>
+          <td>${data.phone}</td>
+          <td>${data.status}</td>
+          <td>${data.amount||0}</td>
+          <td><button onclick="deleteLead('${doc.id}')">Delete</button></td>
+        </tr>
+      `;
+    });
+    document.getElementById("leadTable").innerHTML=html;
+  });
+}
+
+function deleteLead(id){
+  db.collection("leads").doc(id).delete();
+}
+
+function logout(){
+  auth.signOut().then(()=>window.location.href="index.html");
+}
+
+</script>
+
+</body>
+</html>
+
+        
