@@ -102,6 +102,10 @@
     .hidden{
       display:none;
     }
+          canvas{
+  max-height:300px;
+}
+
   </style>
 </head>
 
@@ -143,10 +147,16 @@
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-  <canvas id="revenueChart"></canvas>
-  <canvas id="statusChart"></canvas>
+    <div style="display:flex;flex-direction:column;gap:30px;">
+  <div style="background:#1e293b;padding:20px;border-radius:10px;">
+    <canvas id="revenueChart"></canvas>
+  </div>
+
+  <div style="background:#1e293b;padding:20px;border-radius:10px;">
+    <canvas id="statusChart"></canvas>
+  </div>
 </div>
+
 
   </div>
 
