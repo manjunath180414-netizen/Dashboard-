@@ -201,9 +201,27 @@ function loadLeads(){
         revenue += data.amount || 0;
       }
 
-      let followTime=data.followUpTime 
-        ? new Date(data.followUpTime).toLocaleTimeString()
-        : "--";
+      let followTime = "--";
+let remaining = 0;
+
+if(data.followUpTime){
+    remaining = Math.floor((data.followUpTime - Date.now()) / 1000);
+
+    if(remaining > 0){
+        let hrs = Math.floor(remaining/3600);
+        let mins = Math.floor((remaining%3600)/60);
+        let secs = remaining%60;
+
+        followTime = 
+          hrs.toString().padStart(2,"0")+":"+
+          mins.toString().padStart(2,"0")+":"+
+          secs.toString().padStart(2,"0");
+    } else {
+        followTime = "OVERDUE";
+    }
+}
+startManagerTimer();
+
 
       html+=`
         <tr>
@@ -284,6 +302,46 @@ function updateAgentPerformance(snapshot){
     document.getElementById("agentTable").innerHTML=html;
 
   });
+}
+function startManagerTimer(){
+
+    setInterval(()=>{
+        const rows = document.querySelectorAll("#leadTable tr");
+
+        rows.forEach(row=>{
+            const followCell = row.cells[6]; // FollowUp column
+            const timeText = followCell.innerText;
+
+            if(timeText.includes(":")){
+                let parts = timeText.split(":");
+                let totalSeconds = 
+                    parseInt(parts[0])*3600 +
+                    parseInt(parts[1])*60 +
+                    parseInt(parts[2]);
+
+                totalSeconds--;
+
+                if(totalSeconds <= 0){
+                    followCell.innerText = "OVERDUE";
+                    row.style.background = "rgba(239,68,68,0.2)";
+                } else {
+                    let hrs = Math.floor(totalSeconds/3600);
+                    let mins = Math.floor((totalSeconds%3600)/60);
+                    let secs = totalSeconds%60;
+
+                    followCell.innerText =
+                      hrs.toString().padStart(2,"0")+":"+
+                      mins.toString().padStart(2,"0")+":"+
+                      secs.toString().padStart(2,"0");
+
+                    if(totalSeconds <= 1800){
+                        row.style.background = "rgba(251,191,36,0.15)";
+                    }
+                }
+            }
+        });
+
+    },1000);
 }
 
 function toggleSelect(id,checkbox){
