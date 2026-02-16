@@ -683,6 +683,47 @@ function filterUnassigned(){
     async function assignEqually(){
   const selectedAgents = [...document.querySelectorAll(".agentCheck:checked")]
     .map(cb => cb.value);
+
+  if(selectedAgents.length === 0){
+    alert("Select at least one agent");
+    return;
+  }
+
+  const selectedLeads = [...document.querySelectorAll(".leadCheck:checked")]
+    .map(cb => cb.value);
+
+  if(selectedLeads.length === 0){
+    alert("Select at least one lead");
+    return;
+  }
+
+  let totalLeads = selectedLeads.length;
+  let totalAgents = selectedAgents.length;
+
+  let perAgent = Math.floor(totalLeads / totalAgents);
+  let index = 0;
+
+  const batch = db.batch();
+
+  selectedAgents.forEach(agent=>{
+    for(let i=0; i<perAgent && index<totalLeads; i++){
+      batch.update(db.collection("leads").doc(selectedLeads[index]),{
+        assignedTo: agent
+      });
+      index++;
+    }
+  });
+
+  while(index < totalLeads){
+    batch.update(db.collection("leads").doc(selectedLeads[index]),{
+      assignedTo: selectedAgents[0]
+    });
+    index++;
+  }
+
+  await batch.commit();
+  alert("Leads assigned equally");
+}
 async function assignByPercentage(){
 
   const selectedAgents = [...document.querySelectorAll(".agentCheck:checked")]
@@ -742,47 +783,6 @@ async function assignByPercentage(){
 
   await batch.commit();
   alert("Leads assigned by percentage");
-}
-
-  if(selectedAgents.length === 0){
-    alert("Select at least one agent");
-    return;
-  }
-
-  const selectedLeads = [...document.querySelectorAll(".leadCheck:checked")]
-    .map(cb => cb.value);
-
-  if(selectedLeads.length === 0){
-    alert("Select at least one lead");
-    return;
-  }
-
-  let totalLeads = selectedLeads.length;
-  let totalAgents = selectedAgents.length;
-
-  let perAgent = Math.floor(totalLeads / totalAgents);
-  let index = 0;
-
-  const batch = db.batch();
-
-  selectedAgents.forEach(agent=>{
-    for(let i=0; i<perAgent && index<totalLeads; i++){
-      batch.update(db.collection("leads").doc(selectedLeads[index]),{
-        assignedTo: agent
-      });
-      index++;
-    }
-  });
-
-  while(index < totalLeads){
-    batch.update(db.collection("leads").doc(selectedLeads[index]),{
-      assignedTo: selectedAgents[0]
-    });
-    index++;
-  }
-
-  await batch.commit();
-  alert("Leads assigned equally");
 }
 
 
