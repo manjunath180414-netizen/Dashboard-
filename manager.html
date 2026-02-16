@@ -555,147 +555,44 @@ function uploadCSV(){
 
   reader.readAsText(file);
 }
-
 function bulkAssign(){
-  const oldStatus = previousStatus; // make sure you store this before change
 
-db.collection("leads").doc(id).update({
-   status: status,
-   updatedAt: Date.now()
-}).then(() => {
-   logLeadHistory(id, "status_change", oldStatus, status);
-});
-let previousStatus = lead.status;
-
-
-function logout(){
-  auth.signOut().then(()=>window.location.href="index.html");
-}
-async function distributeByPercentage(){
-
-  const agentSnap = await db.collection("users")
-  .where("role","==","agent")
-  .get();
-
-  let agents = [];
-  let totalPercent = 0;
-
-  agentSnap.forEach(doc=>{
-    let percent = parseFloat(
-      document.getElementById("percent_"+doc.id).value || 0
-    );
-
-    if(percent > 0){
-      agents.push({
-        id: doc.id,
-        percent: percent
-      });
-      totalPercent += percent;
-    }
-  });
-
-  if(totalPercent !== 100){
-    alert("Total percentage must equal 100%");
+  if(selectedLeads.length === 0){
+    alert("No leads selected");
     return;
   }
 
-  const unassignedSnap = await db.collection("leads")
-  .where("assignedTo","==",null)
-  .get();
+  const agentId = document.getElementById("agentSelect").value;
 
-  let leads = [];
-  unassignedSnap.forEach(doc=>{
-    leads.push(doc.id);
-  });
-
-  if(leads.length === 0){
-    alert("No unassigned leads available");
+  if(!agentId){
+    alert("Select an agent");
     return;
   }
-
-  let totalLeads = leads.length;
-  let startIndex = 0;
 
   const batch = db.batch();
 
-  agents.forEach(agent=>{
-
-    let count = Math.floor((agent.percent/100) * totalLeads);
-
-    for(let i=0; i<count && startIndex < totalLeads; i++){
-      const leadId = leads[startIndex];
-      const docRef = db.collection("leads").doc(leadId);
-
-      batch.update(docRef,{
-        assignedTo: agent.id
-      });
-
-      startIndex++;
-    }
-
-  });
-
-  // Assign remaining leads (due to rounding)
-  while(startIndex < totalLeads){
-    const leadId = leads[startIndex];
-    const docRef = db.collection("leads").doc(leadId);
-
-    batch.update(docRef,{
-      assignedTo: agents[0].id
+  selectedLeads.forEach(id=>{
+    const ref = db.collection("leads").doc(id);
+    batch.update(ref,{
+      assignedTo: agentId,
+      updatedAt: Date.now()
     });
+  });
 
-    startIndex++;
-  }
-
-  await batch.commit();
-
-  document.getElementById("distributionResult").innerHTML =
-    "Successfully Distributed "+totalLeads+" Leads";
-
-}
-function logLeadHistory(leadId, actionType, oldValue, newValue) {
-
-  const user = firebase.auth().currentUser;
-  if (!user) return;
-
-  db.collection("users").doc(user.uid).get().then(userDoc => {
-
-    const userData = userDoc.data();
-
-    db.collection("leads")
-      .doc(leadId)
-      .collection("history")
-      .add({
-        changedByUID: user.uid,
-        changedByName: userData.name || "Unknown",
-        role: userData.role || "manager",
-        actionType: actionType,
-        oldValue: oldValue || null,
-        newValue: newValue || null,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
+  batch.commit().then(()=>{
+    alert("Assigned Successfully");
+    selectedLeads = [];
   });
 
 }
-function deleteLead(id){
-
-  const user = firebase.auth().currentUser;
-
-  db.collection("leads").doc(id).update({
-    deleted: true,
-    deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    deletedBy: user.uid
-  }).then(() => {
-    logLeadHistory(id, "lead_deleted", null, "soft_deleted");
+    function logout(){
+  auth.signOut().then(()=>{
+    window.location.href="index.html";
   });
-
 }
-db.collection("leads")
-.where("deleted", "!=", true)
-.onSnapshot(...)
+
+
 
 </script>
-
 </body>
 </html>
