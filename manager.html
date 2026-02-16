@@ -1,3 +1,10 @@
+<h3>Percentage Based Distribution</h3>
+
+<div id="percentageContainer" style="margin-bottom:20px;"></div>
+
+<button onclick="distributeByPercentage()">Distribute Unassigned Leads</button>
+
+<div id="distributionResult" style="margin-top:10px;color:#22c55e;"></div>
 
     <!DOCTYPE html>
 <html>
@@ -280,19 +287,36 @@ startManagerTimer();
 }
 
 function loadAgents(){
+
   db.collection("users")
   .where("role","==","agent")
   .get()
   .then(snapshot=>{
+
     let options="";
+    let percentageHTML="";
+
     snapshot.forEach(doc=>{
       options+=`<option value="${doc.id}">${doc.data().name}</option>`;
+
+      percentageHTML+=`
+        <div style="margin-bottom:8px;">
+          ${doc.data().name}
+          <input type="number" 
+                 id="percent_${doc.id}" 
+                 placeholder="Enter %" 
+                 style="width:80px;padding:5px;margin-left:10px;">
+        </div>
+      `;
     });
+
     document.getElementById("agentSelect").innerHTML=options;
     document.getElementById("newAssignAgent").innerHTML="<option value=''>Unassigned</option>"+options;
+    document.getElementById("percentageContainer").innerHTML=percentageHTML;
 
   });
 }
+
 function addLead(){
 
   const name = document.getElementById("newName").value.trim();
@@ -544,6 +568,88 @@ function bulkAssign(){
 
 function logout(){
   auth.signOut().then(()=>window.location.href="index.html");
+}
+async function distributeByPercentage(){
+
+  const agentSnap = await db.collection("users")
+  .where("role","==","agent")
+  .get();
+
+  let agents = [];
+  let totalPercent = 0;
+
+  agentSnap.forEach(doc=>{
+    let percent = parseFloat(
+      document.getElementById("percent_"+doc.id).value || 0
+    );
+
+    if(percent > 0){
+      agents.push({
+        id: doc.id,
+        percent: percent
+      });
+      totalPercent += percent;
+    }
+  });
+
+  if(totalPercent !== 100){
+    alert("Total percentage must equal 100%");
+    return;
+  }
+
+  const unassignedSnap = await db.collection("leads")
+  .where("assignedTo","==",null)
+  .get();
+
+  let leads = [];
+  unassignedSnap.forEach(doc=>{
+    leads.push(doc.id);
+  });
+
+  if(leads.length === 0){
+    alert("No unassigned leads available");
+    return;
+  }
+
+  let totalLeads = leads.length;
+  let startIndex = 0;
+
+  const batch = db.batch();
+
+  agents.forEach(agent=>{
+
+    let count = Math.floor((agent.percent/100) * totalLeads);
+
+    for(let i=0; i<count && startIndex < totalLeads; i++){
+      const leadId = leads[startIndex];
+      const docRef = db.collection("leads").doc(leadId);
+
+      batch.update(docRef,{
+        assignedTo: agent.id
+      });
+
+      startIndex++;
+    }
+
+  });
+
+  // Assign remaining leads (due to rounding)
+  while(startIndex < totalLeads){
+    const leadId = leads[startIndex];
+    const docRef = db.collection("leads").doc(leadId);
+
+    batch.update(docRef,{
+      assignedTo: agents[0].id
+    });
+
+    startIndex++;
+  }
+
+  await batch.commit();
+
+  document.getElementById("distributionResult").innerHTML =
+    "Successfully Distributed "+totalLeads+" Leads";
+
 }
 
 </script>
