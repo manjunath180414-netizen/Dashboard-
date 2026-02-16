@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+
+    <!DOCTYPE html>
 <html>
 <head>
-  <title>Manager Dashboard - HIS CRM</title>
+  <title>HIS Academy - Manager Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -11,14 +13,14 @@
   <style>
     body{
       margin:0;
-      font-family:Arial;
+      font-family:Segoe UI, sans-serif;
       background:#0f172a;
       color:white;
     }
 
     header{
+      padding:15px 20px;
       background:#1e293b;
-      padding:15px;
       display:flex;
       justify-content:space-between;
       align-items:center;
@@ -28,18 +30,25 @@
       padding:20px;
     }
 
-    .cards{
+    .stats{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-      gap:10px;
-      margin-bottom:20px;
+      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+      gap:15px;
+      margin-bottom:25px;
     }
 
     .card{
       background:#1e293b;
       padding:15px;
-      border-radius:8px;
+      border-radius:10px;
       text-align:center;
+      cursor:pointer;
+    }
+
+    .card span{
+      font-size:20px;
+      font-weight:bold;
+      display:block;
     }
 
     table{
@@ -47,9 +56,11 @@
       border-collapse:collapse;
       margin-top:15px;
       background:#1e293b;
+      border-radius:10px;
+      overflow:hidden;
     }
 
-    th,td{
+    th, td{
       padding:10px;
       border-bottom:1px solid #334155;
       text-align:center;
@@ -59,25 +70,16 @@
       background:#111827;
     }
 
-    input,select{
-      padding:8px;
-      margin:5px;
-      border-radius:5px;
-      border:none;
-    }
-
-    button{
-      padding:8px 12px;
+    select, button{
+      padding:5px 8px;
       border:none;
       border-radius:5px;
       cursor:pointer;
-      background:#2563eb;
-      color:white;
-      margin:5px;
     }
 
-    .section{
-      margin-bottom:30px;
+    button{
+      background:#2563eb;
+      color:white;
     }
 
   </style>
@@ -86,72 +88,62 @@
 <body>
 
 <header>
-  <h3>Manager Dashboard</h3>
+  <div>
+    <h3>HIS Academy - Manager Dashboard</h3>
+    <div id="welcome"></div>
+  </div>
   <button onclick="logout()">Logout</button>
 </header>
 
 <div class="container">
 
-  <!-- STATS -->
-  <div class="cards">
-    <div class="card">Total Leads<br><span id="total">0</span></div>
-    <div class="card">Unassigned<br><span id="unassigned">0</span></div>
-    <div class="card">Interested<br><span id="interested">0</span></div>
-    <div class="card">Joined<br><span id="joined">0</span></div>
-    <div class="card">Revenue<br><span id="revenue">0</span></div>
-  </div>
-
-  <!-- ADD LEAD -->
-  <div class="section">
-    <h3>Add Lead</h3>
-    <input type="text" id="name" placeholder="Student Name">
-    <input type="text" id="phone" placeholder="Phone">
-    <input type="text" id="course" placeholder="Course">
-    <button onclick="addLead()">Add</button>
+  <!-- SUMMARY -->
+  <div class="stats">
+    <div class="card"><span id="total">0</span>Total</div>
+    <div class="card"><span id="unassigned">0</span>Unassigned</div>
+    <div class="card"><span id="interested">0</span>Interested</div>
+    <div class="card"><span id="followup">0</span>Follow Up</div>
+    <div class="card"><span id="joined">0</span>Joined</div>
+    <div class="card"><span id="revenue">₹0</span>Revenue</div>
   </div>
 
   <!-- AGENT PERFORMANCE -->
-  <div class="section">
-    <h3>Agent Performance</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Agent</th>
-          <th>Total Leads</th>
-          <th>Interested</th>
-          <th>Joined</th>
-          <th>Revenue</th>
-          <th>Edit Name</th>
-        </tr>
-      </thead>
-      <tbody id="agentTable"></tbody>
-    </table>
-  </div>
+  <h3>Agent Performance</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Agent</th>
+        <th>Assigned</th>
+        <th>Interested</th>
+        <th>Follow Up</th>
+        <th>Joined</th>
+        <th>Revenue</th>
+      </tr>
+    </thead>
+    <tbody id="agentTable"></tbody>
+  </table>
 
   <!-- BULK ASSIGN -->
-  <div class="section">
-    <h3>Bulk Assign Leads</h3>
-    <select id="assignAgent"></select>
-    <button onclick="bulkAssign()">Assign Selected</button>
-  </div>
+  <h3>Bulk Assign</h3>
+  <select id="agentSelect"></select>
+  <button onclick="bulkAssign()">Assign Selected</button>
 
   <!-- LEADS TABLE -->
-  <div class="section">
-    <h3>All Leads</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Select</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Agent</th>
-          <th>Status</th>
-          <th>Amount</th>
-        </tr>
-      </thead>
-      <tbody id="leadTable"></tbody>
-    </table>
-  </div>
+  <h3>All Leads</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Select</th>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Agent</th>
+        <th>Status</th>
+        <th>Amount</th>
+        <th>FollowUp</th>
+      </tr>
+    </thead>
+    <tbody id="leadTable"></tbody>
+  </table>
 
 </div>
 
@@ -167,6 +159,7 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -176,132 +169,120 @@ auth.onAuthStateChanged(user=>{
   if(!user){
     window.location.href="index.html";
   }else{
-    loadStats();
-    loadAgents();
-    loadLeads();
+    db.collection("users").doc(user.uid).get().then(doc=>{
+      if(!doc.exists || doc.data().role !== "manager"){
+        window.location.href="index.html";
+      }else{
+        document.getElementById("welcome").innerText="Welcome, "+doc.data().name;
+        loadAgents();
+        loadLeads();
+      }
+    });
   }
 });
 
-function loadStats(){
-  db.collection("leads").onSnapshot(snapshot=>{
-    let total=0, unassigned=0, interested=0, joined=0, revenue=0;
-
-    snapshot.forEach(doc=>{
-      const data=doc.data();
-      total++;
-      if(!data.assignedTo) unassigned++;
-      if(data.status==="Interested") interested++;
-      if(data.status==="Joined"){
-        joined++;
-        revenue += data.amount || 0;
-      }
-    });
-
-    document.getElementById("total").innerText=total;
-    document.getElementById("unassigned").innerText=unassigned;
-    document.getElementById("interested").innerText=interested;
-    document.getElementById("joined").innerText=joined;
-    document.getElementById("revenue").innerText="₹"+revenue;
-  });
-}
-
-function addLead(){
-  const name=document.getElementById("name").value;
-  const phone=document.getElementById("phone").value;
-  const course=document.getElementById("course").value;
-
-  if(!name || !phone){
-    alert("Fill required fields");
-    return;
-  }
-
-  db.collection("leads").add({
-    studentName:name,
-    phone:phone,
-    course:course,
-    status:"New",
-    assignedTo:null,
-    createdAt:new Date()
-  });
-
-  document.getElementById("name").value="";
-  document.getElementById("phone").value="";
-  document.getElementById("course").value="";
-}
-
-function loadAgents(){
-  db.collection("users")
-  .where("role","==","agent")
-  .onSnapshot(snapshot=>{
-
-    let html="";
-    let dropdown="";
-
-    snapshot.forEach(doc=>{
-      const agentId=doc.id;
-      const name=doc.data().name;
-
-      dropdown+=`<option value="${agentId}">${name}</option>`;
-
-      db.collection("leads")
-      .where("assignedTo","==",agentId)
-      .get()
-      .then(leadSnap=>{
-
-        let total=leadSnap.size;
-        let interested=0;
-        let joined=0;
-        let revenue=0;
-
-        leadSnap.forEach(lead=>{
-          const data=lead.data();
-          if(data.status==="Interested") interested++;
-          if(data.status==="Joined"){
-            joined++;
-            revenue += data.amount || 0;
-          }
-        });
-
-        html+=`
-          <tr>
-            <td>${name}</td>
-            <td>${total}</td>
-            <td>${interested}</td>
-            <td>${joined}</td>
-            <td>₹${revenue}</td>
-            <td><button onclick="editName('${agentId}')">Edit</button></td>
-          </tr>
-        `;
-
-        document.getElementById("agentTable").innerHTML=html;
-      });
-    });
-
-    document.getElementById("assignAgent").innerHTML=dropdown;
-
-  });
-}
-
 function loadLeads(){
+
   db.collection("leads").onSnapshot(snapshot=>{
+
+    let total=0, unassigned=0, interested=0, followup=0, joined=0, revenue=0;
     let html="";
     selectedLeads=[];
 
     snapshot.forEach(doc=>{
       const data=doc.data();
+      total++;
+
+      if(!data.assignedTo) unassigned++;
+      if(data.status==="Interested") interested++;
+      if(data.status==="Follow up") followup++;
+      if(data.status==="Joined"){
+        joined++;
+        revenue += data.amount || 0;
+      }
+
+      let followTime=data.followUpTime 
+        ? new Date(data.followUpTime).toLocaleTimeString()
+        : "--";
+
       html+=`
         <tr>
           <td><input type="checkbox" onchange="toggleSelect('${doc.id}',this)"></td>
           <td>${data.studentName}</td>
           <td>${data.phone}</td>
           <td>${data.assignedTo || "Unassigned"}</td>
-          <td>${data.status}</td>
+          <td>${data.status || "New"}</td>
           <td>${data.amount || 0}</td>
+          <td>${followTime}</td>
         </tr>
       `;
     });
 
     document.getElementById("leadTable").innerHTML=html;
+    document.getElementById("total").innerText=total;
+    document.getElementById("unassigned").innerText=unassigned;
+    document.getElementById("interested").innerText=interested;
+    document.getElementById("followup").innerText=followup;
+    document.getElementById("joined").innerText=joined;
+    document.getElementById("revenue").innerText="₹"+revenue;
+
+    updateAgentPerformance(snapshot);
+
+  });
+}
+
+function loadAgents(){
+  db.collection("users")
+  .where("role","==","agent")
+  .get()
+  .then(snapshot=>{
+    let options="";
+    snapshot.forEach(doc=>{
+      options+=`<option value="${doc.id}">${doc.data().name}</option>`;
+    });
+    document.getElementById("agentSelect").innerHTML=options;
+  });
+}
+
+function updateAgentPerformance(snapshot){
+
+  db.collection("users")
+  .where("role","==","agent")
+  .get()
+  .then(agentSnap=>{
+
+    let html="";
+
+    agentSnap.forEach(agent=>{
+      let assigned=0, interested=0, followup=0, joined=0, revenue=0;
+
+      snapshot.forEach(doc=>{
+        let data=doc.data();
+        if(data.assignedTo===agent.id){
+          assigned++;
+          if(data.status==="Interested") interested++;
+          if(data.status==="Follow up") followup++;
+          if(data.status==="Joined"){
+            joined++;
+            revenue+=data.amount||0;
+          }
+        }
+      });
+
+      html+=`
+        <tr>
+          <td>${agent.data().name}</td>
+          <td>${assigned}</td>
+          <td>${interested}</td>
+          <td>${followup}</td>
+          <td>${joined}</td>
+          <td>₹${revenue}</td>
+        </tr>
+      `;
+    });
+
+    document.getElementById("agentTable").innerHTML=html;
+
   });
 }
 
@@ -314,38 +295,20 @@ function toggleSelect(id,checkbox){
 }
 
 function bulkAssign(){
-  const agent=document.getElementById("assignAgent").value;
-  if(!agent){
-    alert("Select agent");
-    return;
-  }
-
+  const agent=document.getElementById("agentSelect").value;
   selectedLeads.forEach(id=>{
     db.collection("leads").doc(id).update({
       assignedTo:agent
     });
   });
-
   alert("Assigned Successfully");
 }
 
-function editName(agentId){
-  let newName=prompt("Enter new name:");
-  if(!newName) return;
-
-  db.collection("users").doc(agentId).update({
-    name:newName
-  });
-}
-
 function logout(){
-  auth.signOut().then(()=>{
-    window.location.href="index.html";
-  });
+  auth.signOut().then(()=>window.location.href="index.html");
 }
 
 </script>
 
 </body>
 </html>
-
