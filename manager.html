@@ -806,6 +806,11 @@ function addRow(id,data){
 
 }
 function openLead(id){
+let currentLeadId = null;
+
+function openLead(id){
+    currentLeadId = id;
+
 
   db.collection("leads").doc(id).get().then(doc=>{
 
@@ -871,6 +876,59 @@ function loadModalHistory(leadId){
 function closeModal(){
   document.getElementById("leadModal").style.display = "none";
 }
+
+function logHistory(leadId,actionType,oldValue,newValue){
+
+    const user = firebase.auth().currentUser;
+
+    db.collection("leads")
+    .doc(leadId)
+    .collection("history")
+    .add({
+        actionType:actionType,
+        oldValue:oldValue,
+        newValue:newValue,
+        changedBy:user.uid,
+        timestamp:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+}
+
+function assignLead(){
+
+    const newAgentUID = document.getElementById("agentChange").value;
+
+    if(!newAgentUID){
+        alert("Select agent first");
+        return;
+    }
+
+    db.collection("leads").doc(currentLeadId).get().then(doc=>{
+
+        const oldAgent = doc.data().assignedTo || null;
+
+        db.collection("leads").doc(currentLeadId).update({
+            assignedTo:newAgentUID,
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        }).then(()=>{
+
+            logHistory(
+                currentLeadId,
+                "assignment_change",
+                oldAgent,
+                newAgentUID
+            );
+
+            alert("Lead Assigned Successfully");
+
+            loadLeads();  // refresh table
+
+        });
+
+    });
+
+}
+
 
 
 </script>
