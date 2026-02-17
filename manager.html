@@ -205,12 +205,12 @@
 <select id="agentChange">
   <option value="">Select Agent</option>
 </select>
-
+<button onclick="reassignAgent()">Reassign</button>
 
     <button onclick="updateStatus()">Update</button>
     <button onclick="resetLead()">Reset as New</button>
     <button onclick="softDelete()">Soft Delete</button>
-      <button onclick="reassignAgent()">Reassign</button>
+      
 
   </div>
 <hr style="margin:15px 0;">
@@ -827,6 +827,7 @@ function openLead(id){
     document.getElementById("leadModal").style.display = "flex";
 
     loadModalHistory(id);
+    loadAgentsDropdown():
 
   });
 
