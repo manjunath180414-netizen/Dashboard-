@@ -422,8 +422,7 @@ function previousPage(){
   });
 }
 
-function openLead(id){
-  window.location.href = "manager.html?lead=" + id;
+
 }
 
 function searchLeads(){
@@ -804,9 +803,114 @@ function addRow(id,data){
   `;
 
 }
+function openLead(id){
+
+  db.collection("leads").doc(id).get().then(doc=>{
+
+    const data = doc.data();
+
+    const html = `
+      <h2>${data.studentName}</h2>
+      <p><b>Phone:</b> ${data.phone}</p>
+      <p><b>Status:</b> ${data.status}</p>
+      <p><b>Agent:</b> ${agentMap[data.assignedTo] || "Unassigned"}</p>
+      <p><b>Amount:</b> ₹${data.amount || 0}</p>
+      <hr>
+      <h3>Activity Timeline</h3>
+      <div id="modalHistory"></div>
+    `;
+
+    document.getElementById("modalContent").innerHTML = html;
+
+    document.getElementById("leadModal").style.display = "flex";
+
+    loadModalHistory(id);
+
+  });
+
+}
+function loadModalHistory(leadId){
+
+  const container = document.getElementById("modalHistory");
+  container.innerHTML = "Loading...";
+
+  db.collection("leads")
+  .doc(leadId)
+  .collection("history")
+  .orderBy("timestamp","desc")
+  .onSnapshot(snapshot=>{
+
+    container.innerHTML = "";
+
+    snapshot.forEach(doc=>{
+      const data = doc.data();
+      const time = data.timestamp ? 
+        new Date(data.timestamp.seconds*1000).toLocaleString() : "";
+
+      container.innerHTML += `
+        <div style="
+          margin-bottom:10px;
+          padding:10px;
+          background:#0f172a;
+          border-left:3px solid #3b82f6;
+          border-radius:6px;
+        ">
+          <b>${data.changedByName}</b> (${data.role})<br>
+          ${data.actionType}<br>
+          <small>${time}</small>
+        </div>
+      `;
+    });
+
+  });
+
+}
+function closeModal(){
+  document.getElementById("leadModal").style.display = "none";
+}
 
 
 </script>
+<!-- Lead Popup Modal -->
+<div id="leadModal" style="
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.7);
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+">
+
+  <div style="
+    background:#1e293b;
+    width:95%;
+    max-width:600px;
+    max-height:90%;
+    overflow:auto;
+    padding:20px;
+    border-radius:12px;
+    position:relative;
+  ">
+
+    <button onclick="closeModal()" style="
+      position:absolute;
+      top:10px;
+      right:10px;
+      background:red;
+      border:none;
+      padding:5px 10px;
+      color:white;
+      border-radius:5px;
+    ">X</button>
+
+    <div id="modalContent"></div>
+
+  </div>
+</div>
 
 </body>
 </html>
