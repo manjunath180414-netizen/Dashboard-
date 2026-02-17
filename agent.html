@@ -147,6 +147,11 @@ tr:nth-child(even){
 }
 
 </style>
+    <!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
 </head>
 
 <body>
@@ -231,6 +236,113 @@ tr:nth-child(even){
     </table>
 
 </div>
+<script>
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_ID",
+  appId: "YOUR_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let agentUID = null;
+
+auth.onAuthStateChanged(user=>{
+    if(!user){
+        window.location.href="index.html";
+        return;
+    }
+
+    agentUID = user.uid;
+
+    db.collection("users").doc(agentUID).get().then(doc=>{
+        document.getElementById("agentName").innerText = doc.data().name;
+    });
+
+    loadAgentLeads();
+});
+function loadAgentLeads(){
+
+    db.collection("leads")
+    .where("assignedTo","==",agentUID)
+    .where("deleted","==",false)
+    .onSnapshot(snapshot=>{
+
+        const table = document.getElementById("leadTable");
+        table.innerHTML="";
+
+        let total=0, interested=0, notInterested=0, call=0, switchOff=0;
+
+        snapshot.forEach(doc=>{
+
+            const data = doc.data();
+            total++;
+
+            if(data.status==="Interested") interested++;
+            if(data.status==="Not Interested") notInterested++;
+            if(data.status==="Follow Up") call++;
+            if(data.status==="Switch Off") switchOff++;
+
+            table.innerHTML += `
+                <tr>
+                    <td>${data.studentName}</td>
+                    <td onclick="copyNumber('${data.phone}')" style="cursor:pointer;color:#2a5298;">
+                        ${data.phone}
+                    </td>
+                    <td>
+                        <span class="badge badge-${getBadgeClass(data.status)}">
+                            ${data.status}
+                        </span>
+                    </td>
+                    <td>${data.followUpTime ? new Date(data.followUpTime).toLocaleString() : "-"}</td>
+                    <td>${data.amount || 0}</td>
+                    <td>
+                        <input class="remark-input"
+                        value="${data.remarks || ''}"
+                        onchange="saveRemark('${doc.id}',this.value)">
+                    </td>
+                </tr>
+            `;
+        });
+
+        document.getElementById("totalLeads").innerText=total;
+        document.getElementById("totalInterested").innerText=interested;
+        document.getElementById("totalNotInterested").innerText=notInterested;
+        document.getElementById("totalCall").innerText=call;
+        document.getElementById("totalSwitch").innerText=switchOff;
+
+    });
+
+}
+function getBadgeClass(status){
+    if(status==="Interested") return "interested";
+    if(status==="Not Interested") return "not";
+    if(status==="Follow Up") return "call";
+    if(status==="Switch Off") return "switch";
+    if(status==="Joined") return "joined";
+    return "new";
+}
+function copyNumber(number){
+    navigator.clipboard.writeText(number);
+    alert("Number Copied");
+}
+function saveRemark(id,value){
+
+    db.collection("leads").doc(id).update({
+        remarks:value,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+}
+
+</script>
 
 </body>
 </html>
