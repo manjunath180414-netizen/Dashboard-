@@ -1,464 +1,236 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>HIS Academy CRM</title>
+<meta charset="UTF-8">
+<title>HIS Academy - Agent Portal</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+
 body{
-margin:0;
-font-family:Segoe UI;
-background:linear-gradient(135deg,#050c1f,#0b1b3a);
-color:white;
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f4f6f9;
 }
 
-.center-title{
-text-align:center;
-font-size:32px;
-margin-top:15px;
-color:#38bdf8;
-text-shadow:0 0 15px #0ea5e9;
+/* HEADER */
+.header{
+    background:linear-gradient(90deg,#1e3c72,#2a5298);
+    color:white;
+    padding:15px 30px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
 }
 
-.sub,.clock{
-text-align:center;
-margin-top:5px;
+.header h2{
+    margin:0;
 }
 
-.box-row{
-display:flex;
-justify-content:space-around;
-margin:20px;
-flex-wrap:wrap;
+.header button{
+    background:white;
+    border:none;
+    padding:8px 15px;
+    border-radius:6px;
+    cursor:pointer;
 }
 
-.stat-box,.filter-box{
-background:rgba(15,30,70,0.9);
-padding:15px;
-border-radius:10px;
-width:22%;
-text-align:center;
-box-shadow:0 0 15px #0ea5e9;
-cursor:pointer;
-margin-bottom:10px;
+/* CONTAINER */
+.container{
+    padding:30px;
 }
 
-.divider{
-height:4px;
-width:90%;
-margin:20px auto;
-background:#38bdf8;
-box-shadow:0 0 20px #0ea5e9;
+/* WELCOME */
+.welcome{
+    font-size:22px;
+    margin-bottom:25px;
+    color:#333;
 }
 
-.card{
-width:90%;
-margin:20px auto;
-background:rgba(15,30,70,0.8);
-border-radius:15px;
-padding:20px;
-box-shadow:0 0 25px #0ea5e9;
+/* STAT CARDS */
+.stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:20px;
+    margin-bottom:30px;
 }
 
-input{
-width:100%;
-padding:8px;
-margin-bottom:15px;
-border-radius:6px;
-border:none;
+.stat-card{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.05);
+    text-align:center;
 }
 
+.stat-card h4{
+    margin:0;
+    font-weight:normal;
+    color:#555;
+}
+
+.stat-card h2{
+    margin:10px 0 0 0;
+}
+
+/* Colored numbers */
+.blue{ color:#2a5298; }
+.green{ color:#2ecc71; }
+.red{ color:#e74c3c; }
+.orange{ color:#f39c12; }
+.gray{ color:#7f8c8d; }
+
+/* FILTER ROW */
+.filter-row{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:20px;
+}
+
+.filter-row input{
+    padding:8px;
+    width:250px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+.filter-row select{
+    padding:8px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+/* TABLE */
 table{
-width:100%;
-border-collapse:collapse;
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 4px 10px rgba(0,0,0,0.05);
 }
 
-th, td{
-padding:10px;
-text-align:left;
+th,td{
+    padding:12px;
+    text-align:left;
 }
 
-tr{
-border-bottom:1px solid #1e3a8a;
+th{
+    background:#f1f3f6;
 }
 
-select{
-background:#0f172a;
-color:white;
-padding:5px;
-border-radius:5px;
+tr:nth-child(even){
+    background:#fafafa;
 }
 
-.status-glow{
-padding:5px 10px;
-border-radius:6px;
+/* STATUS BADGES */
+.badge{
+    padding:6px 12px;
+    border-radius:20px;
+    color:white;
+    font-size:13px;
 }
 
-.green{background:#22cb2e;}
-.red-light{background:#ef6262;}
-.full-red{background:#7f1d1d;}
-.full-green{background:#064e3b;}
+.badge-new{ background:#3498db; }
+.badge-interested{ background:#2ecc71; }
+.badge-not{ background:#e74c3c; }
+.badge-call{ background:#f39c12; }
+.badge-switch{ background:#7f8c8d; }
+.badge-joined{ background:#8e44ad; }
 
-.blink{animation:blink 1s infinite;}
-@keyframes blink{50%{opacity:0.4;}}
-
-.alert{
-text-align:center;
-background:red;
-padding:10px;
-display:none;
-}
-
-.shake{animation:shake 0.4s;}
-@keyframes shake{
-0%{transform:translateX(0);}
-25%{transform:translateX(-5px);}
-50%{transform:translateX(5px);}
-75%{transform:translateX(-5px);}
-100%{transform:translateX(0);}
-}
-  .green-row{
-    background:rgba(34,197,94,0.15);
-    border-left:5px solid #22c55e;
-}
-
-.red-row{
-    background:rgba(239,68,68,0.15);
-    border-left:5px solid #ef4444;
-}
-
-.orange-row{
-    background:rgba(251,191,36,0.15);
-    border-left:5px solid #facc15;
-}
-
-.grey-row{
-    background:rgba(148,163,184,0.15);
-    border-left:5px solid #94a3b8;
+/* REMARK INPUT */
+.remark-input{
+    width:100%;
+    padding:5px;
+    border-radius:5px;
+    border:1px solid #ccc;
 }
 
 </style>
 </head>
+
 <body>
 
-<div class="center-title">HIS Academy</div>
-<div class="sub">Welcome, Agent Manjunath</div>
-<div class="clock" id="clock"></div>
-
-<div class="box-row">
-<div class="stat-box">
-Leads Assigned Today<br><b id="assignedCount">0</b>
+<div class="header">
+    <h2>HIS Academy - Agent Portal</h2>
+    <div>
+        Welcome, <b id="agentName">Agent</b>
+        <button>Logout</button>
+    </div>
 </div>
 
-<div class="stat-box">
-Total Leads Called<br><b id="calledCount">0</b>
+<div class="container">
+
+    <div class="welcome">
+        Welcome to HIS Academy CRM
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+        <div class="stat-card">
+            <h4>Total Leads</h4>
+            <h2 class="blue" id="totalLeads">0</h2>
+        </div>
+        <div class="stat-card">
+            <h4>Interested</h4>
+            <h2 class="green" id="totalInterested">0</h2>
+        </div>
+        <div class="stat-card">
+            <h4>Not Interested</h4>
+            <h2 class="red" id="totalNotInterested">0</h2>
+        </div>
+        <div class="stat-card">
+            <h4>Call Back</h4>
+            <h2 class="orange" id="totalCall">0</h2>
+        </div>
+        <div class="stat-card">
+            <h4>Switch Off</h4>
+            <h2 class="gray" id="totalSwitch">0</h2>
+        </div>
+    </div>
+
+    <!-- FILTER -->
+    <div class="filter-row">
+        <select>
+            <option>All</option>
+            <option>Interested</option>
+            <option>Not Interested</option>
+            <option>Call Back</option>
+            <option>Switch Off</option>
+            <option>Joined</option>
+        </select>
+
+        <input type="text" placeholder="Search leads...">
+    </div>
+
+    <!-- TABLE -->
+    <table>
+        <thead>
+            <tr>
+                <th>Lead Name</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Follow Up</th>
+                <th>Amount</th>
+                <th>Remark</th>
+            </tr>
+        </thead>
+        <tbody id="leadTable">
+
+            <!-- SAMPLE ROW -->
+            <tr>
+                <td>Rajesh Kumar</td>
+                <td>9876543210</td>
+                <td><span class="badge badge-interested">Interested</span></td>
+                <td>-</td>
+                <td>0</td>
+                <td><input class="remark-input" placeholder="Write remark..."></td>
+            </tr>
+
+        </tbody>
+    </table>
+
 </div>
 
-<div class="stat-box">
-Pending Today<br><b id="pendingCount">0</b>
-</div>
-
-
-
-<div class="box-row">
-<div class="filter-box" onclick="filterStatus('Interested')">Interested</div>
-
-<div class="filter-box" onclick="filterStatus('Not Interested')">Not Intrested</div>
-
-<div class="filter-box" onclick="filterStatus('Not Received')">Not Received</div>
-
-<div class="filter-box" onclick="filterStatus('Joined')">Joined</div>
-</div>
-<div class="divider"></div>
-
-<div class="alert" id="topAlert"></div>
-
-<div class="card">
-
-<input type="text" id="search" placeholder="Search phone number..." onkeyup="searchLead()">
-
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Phone</th>
-<th>Status</th>
-<th>Call Back / Amount</th>
-</tr>
-</thead>
-<tbody id="leadTable"></tbody>
-</table>
-
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<script>
-
-const firebaseConfig = {
-  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
-  authDomain: "dashboard-bd51c.firebaseapp.com",
-  projectId: "dashboard-bd51c",
-  storageBucket: "dashboard-bd51c.firebasestorage.app",
-  messagingSenderId: "689809644516",
-  appId: "1:689809644516:web:75d6051b300983afb545f1"
-};
-
-firebase.initializeApp(firebaseConfig);
-
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-let followupTimers=[];
-let currentUID="";
-
-// AUTH PROTECTION
-auth.onAuthStateChanged(user=>{
-  if(!user){
-    window.location.href="index.html";
-  }else{
-    currentUID=user.uid;
-
-    db.collection("users").doc(user.uid).get().then(doc=>{
-      if(!doc.exists || doc.data().role !== "agent"){
-        window.location.href="index.html";
-      }else{
-        document.querySelector(".sub").innerHTML="Welcome, "+doc.data().name;
-        loadLeads();
-      }
-    });
-  }
-});
-
-// LOAD LEADS FROM FIRESTORE
-function loadLeads(){
-
-  const table=document.getElementById("leadTable");
-  table.innerHTML="";
-
-  db.collection("leads")
-  .where("assignedTo","==",currentUID)
-  .onSnapshot(snapshot=>{
-
-    table.innerHTML="";
-    followupTimers=[];
-
-    snapshot.forEach(doc=>{
-      const lead=doc.data();
-      const id=doc.id;
-
-      let row=document.createElement("tr");
-
-      row.innerHTML=`
-      <td>${lead.studentName}</td>
-      <td>${lead.phone}</td>
-      <td>
-      <select data-id="${id}">
-      <option ${lead.status==="New"?"selected":""}>New</option>
-      <option ${lead.status==="Interested"?"selected":""}>Interested</option>
-      <option ${lead.status==="Not Interested"?"selected":""}>Not Interested</option>
-      <option ${lead.status==="Follow up"?"selected":""}>Follow up</option>
-      <option ${lead.status==="Wrong Number"?"selected":""}>Wrong Number</option>
-      <option ${lead.status==="Not Received"?"selected":""}>Not Received</option>
-      <option ${lead.status==="Switch Off"?"selected":""}>Switch Off</option>
-      <option ${lead.status==="Joined"?"selected":""}>Joined</option>
-      </select>
-      </td>
-      <td class="timer">${lead.amount ? "₹ "+lead.amount : "--"}</td>
-      `;
-
-      table.appendChild(row);
-
-      let select=row.querySelector("select");
-      select.addEventListener("change",()=>handleStatus(select));
-if(lead.status==="Joined"){
-    row.classList.add("green-row");
-}
-if(lead.status==="Wrong Number"){
-    row.classList.add("red-row");
-}
-if(lead.status==="Not Interested"){
-    row.classList.add("grey-row");
-}
-if(lead.status==="Follow up"){
-    row.classList.add("orange-row");
-}
-
-      // Restart timers if followup exists
-      if(lead.followUpTime){
-        let remaining=Math.floor((lead.followUpTime-Date.now())/1000);
-        if(remaining>0){
-          startPreciseTimer(row.querySelector(".timer"),remaining);
-        }
-      }
-
-    });
-
-    updateStats();
-
-  });
-}
-
-// HANDLE STATUS
-function handleStatus(select){
-
-let id=select.dataset.id;
-let row=select.closest("tr");
-let timer=row.querySelector(".timer");
-
-row.classList.remove("green-row","red-row","orange-row","grey-row");
-timer.classList.remove("blink");
-
-
-let status=select.value;
-
-if(status==="Interested" || status==="Follow up"){
-
-let timeInput=prompt("Enter Call Back Time (HH:MM 24hr format)");
-if(!timeInput || !timeInput.includes(":")){
-select.value="New";
-return;
-}
-
-let parts=timeInput.split(":");
-let now=new Date();
-let target=new Date();
-target.setHours(parseInt(parts[0]));
-target.setMinutes(parseInt(parts[1]));
-target.setSeconds(0);
-
-if(target<=now) target.setDate(target.getDate()+1);
-
-db.collection("leads").doc(id).update({
-status:status,
-followUpTime:target.getTime(),
-updatedAt:Date.now()
-});
-
-}
-
-if(status==="Not Interested"){
-let reason=prompt("Enter Reason:");
-db.collection("leads").doc(id).update({
-status:status,
-reason:reason || "",
-updatedAt:Date.now()
-});
-}
-
-if(status==="Switch Off" || status==="Not Received"){
-let target=Date.now()+8*60*60*1000;
-db.collection("leads").doc(id).update({
-status:status,
-followUpTime:target,
-updatedAt:Date.now()
-});
-}
-
-if(status==="Wrong Number"){
-db.collection("leads").doc(id).update({
-status:status,
-updatedAt:Date.now()
-});
-}
-
-if(status==="Joined"){
-let amount=prompt("Enter Amount Paid (₹):");
-if(!amount){
-select.value="New";
-return;
-}
-db.collection("leads").doc(id).update({
-status:status,
-amount:parseInt(amount),
-updatedAt:Date.now()
-});
-}
-if(status==="Joined"){
-    row.classList.add("green-row");
-}
-
-if(status==="Wrong Number"){
-    row.classList.add("red-row");
-}
-
-if(status==="Not Interested"){
-    row.classList.add("grey-row");
-}
-
-if(status==="Follow up" || status==="Interested"){
-    row.classList.add("orange-row");
-}
-
-updateStats();
-}
-
-// TIMER
-function startPreciseTimer(cell,seconds){
-
-let remaining=seconds;
-
-let interval=setInterval(()=>{
-
-remaining--;
-
-if(remaining<=0){
-cell.innerHTML="00:00:00";
-clearInterval(interval);
-return;
-}
-
-let hrs=Math.floor(remaining/3600);
-let mins=Math.floor((remaining%3600)/60);
-let secs=remaining%60;
-
-cell.innerHTML=
-hrs.toString().padStart(2,"0")+":"+
-mins.toString().padStart(2,"0")+":"+
-secs.toString().padStart(2,"0");
-
-if(remaining<=1800){
-cell.classList.add("blink");
-}
-
-},1000);
-}
-
-// STATS
-function updateStats(){
-let rows=document.querySelectorAll("#leadTable tr");
-let assigned=rows.length;
-let called=0;
-let pending=0;
-
-rows.forEach(row=>{
-let status=row.querySelector("select").value;
-if(status!=="New") called++;
-if(status==="New") pending++;
-});
-
-document.getElementById("assignedCount").innerText=assigned;
-document.getElementById("calledCount").innerText=called;
-document.getElementById("pendingCount").innerText=pending;
-}
-
-function searchLead(){
-let input=document.getElementById("search").value.toLowerCase();
-let rows=document.querySelectorAll("#leadTable tr");
-rows.forEach(r=>{
-r.style.display=r.innerText.toLowerCase().includes(input)?"":"none";
-});
-}
-
-function filterStatus(status){
-let rows=document.querySelectorAll("#leadTable tr");
-rows.forEach(r=>{
-r.style.display=r.innerText.includes(status)?"":"none";
-});
-}
-  
-</script>
 </body>
 </html>
