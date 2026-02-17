@@ -219,7 +219,15 @@
     <div id="historyContainer"></div>
   </div>
 
+
+  <div class="card">
+  <h3>Bulk Assign Leads</h3>
+  <select id="bulkAgentSelect">
+    <option value="">Select Agent</option>
+  </select>
+  <button onclick="bulkAssign()">Assign Selected</button>
 </div>
+
 
     <div class="card">
       <input type="text" id="searchInput" placeholder="Search by name or phone" onkeyup="searchLeads()" />
@@ -229,11 +237,13 @@
       <table>
         <thead>
           <tr>
+            <th><input type="checkbox" onclick="toggleSelectAll(this)"></th>
             <th>Name</th>
             <th>Phone</th>
             <th>Status</th>
             <th>Agent</th>
             <th>Amount</th>
+
           </tr>
         </thead>
         <tbody id="leadTable"></tbody>
@@ -278,6 +288,7 @@ auth.onAuthStateChanged(user=>{
         window.location.href="index.html";
       } else {
         document.getElementById("welcomeText").innerText = "Welcome, " + doc.data().name;
+      
         function preloadAgents(){
 
   db.collection("users")
@@ -299,6 +310,13 @@ auth.onAuthStateChanged(user=>{
     });
   }
 });
+const bulkSelect = document.getElementById("bulkAgentSelect");
+if(bulkSelect){
+  bulkSelect.innerHTML = '<option value="">Select Agent</option>';
+  snapshot.forEach(doc=>{
+    bulkSelect.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`;
+  });
+}
 
 function showSection(section){
   document.getElementById("dashboardSection").classList.add("hidden");
@@ -795,7 +813,17 @@ function addRow(id,data){
   const table = document.getElementById("leadTable");
 
   table.innerHTML += `
-    <tr onclick="openLead('${id}')">
+    <tr table.innerHTML += `
+<tr>
+  <td><input type="checkbox" class="leadCheckbox" value="${id}"></td>
+  <td onclick="openLead('${id}')">${data.studentName}</td>
+  <td>${data.phone}</td>
+  <td>${data.status}</td>
+  <td>${agentMap[data.assignedTo] || "Unassigned"}</td>
+  <td>${data.amount || 0}</td>
+</tr>
+`;
+
       <td>${data.studentName}</td>
       <td>${data.phone}</td>
       <td>${data.status}</td>
@@ -871,6 +899,41 @@ function closeModal(){
   document.getElementById("leadModal").style.display = "none";
 }
 
+function toggleSelectAll(source){
+  const checkboxes = document.querySelectorAll(".leadCheckbox");
+  checkboxes.forEach(cb => cb.checked = source.checked);
+}
+function bulkAssign(){
+
+  const selectedAgent = document.getElementById("bulkAgentSelect").value;
+  if(!selectedAgent){
+    alert("Select Agent");
+    return;
+  }
+
+  const checkboxes = document.querySelectorAll(".leadCheckbox:checked");
+
+  if(checkboxes.length === 0){
+    alert("Select leads");
+    return;
+  }
+
+  const batch = db.batch();
+
+  checkboxes.forEach(cb=>{
+    const ref = db.collection("leads").doc(cb.value);
+    batch.update(ref,{
+      assignedTo: selectedAgent,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  });
+
+  batch.commit().then(()=>{
+    alert("Leads Assigned Successfully");
+    loadLeads();
+  });
+
+}
 
 </script>
 <!-- Lead Popup Modal -->
