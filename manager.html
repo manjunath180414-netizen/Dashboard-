@@ -197,7 +197,9 @@
       <option>Joined</option>
       <option>Not Interested</option>
       <option>Wrong Number</option>
-
+    </select>
+    
+    <hr style="margin:15px 0:">
       <h4>Reassign Agent</h4>
 <select id="agentChange">
   <option value="">Select Agent</option>
@@ -209,8 +211,8 @@
       <button onclick="reassignAgent()">Reassign</button>
 
   </div>
-<hr style="margin:15px 0;">
   
+<hr style="margin:15px 0;"> 
 
   <div class="card">
     <h3>Activity Timeline</h3>
@@ -423,7 +425,7 @@ function previousPage(){
 }
 
 
-}
+
 
 function searchLeads(){
   const input = document.getElementById("searchInput").value.toLowerCase();
