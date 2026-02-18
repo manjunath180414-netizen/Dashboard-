@@ -370,8 +370,10 @@ function changeStatus(id,newStatus){
     updateData.followUpTime = null;
 
     if(newStatus === "Follow Up"){
+    openFollowUpModal(id);
+    return;
+}
 
-        const time = prompt("Enter follow-up time (YYYY-MM-DD HH:MM)");
 
         if(!time){
             alert("Follow-up cancelled");
@@ -399,6 +401,37 @@ function changeStatus(id,newStatus){
 
     db.collection("leads").doc(id).update(updateData);
 
+}
+let currentLeadId = null;
+
+function openFollowUpModal(id){
+    currentLeadId = id;
+    document.getElementById("followUpModal").style.display="flex";
+}
+
+function closeFollowUp(){
+    document.getElementById("followUpModal").style.display="none";
+}
+
+function saveFollowUp(){
+
+    const date = document.getElementById("followDate").value;
+    const time = document.getElementById("followTime").value;
+
+    if(!date || !time){
+        alert("Select date and time");
+        return;
+    }
+
+    const fullDateTime = new Date(date + " " + time).getTime();
+
+    db.collection("leads").doc(currentLeadId).update({
+        status:"Follow Up",
+        followUpTime:fullDateTime,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    closeFollowUp();
 }
 
 </script>
