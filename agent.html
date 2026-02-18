@@ -2,365 +2,268 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>HIS Academy - Agent Corporate Panel</title>
+<title>HIS Academy - Agent CRM</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
     margin:0;
-    font-family: 'Segoe UI', Arial;
-    background:#eef2f7;
+    font-family:Arial;
+    background:#0f172a;
+    color:white;
 }
 
 .header{
-    background:#1f4e79;
-    color:white;
-    padding:15px 25px;
+    padding:15px 20px;
+    background:#111827;
     display:flex;
     justify-content:space-between;
     align-items:center;
 }
 
-.main{
+.container{
     padding:20px;
 }
 
-h3{
-    color:#1f4e79;
-    margin-bottom:10px;
-}
-
-.summary{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-    gap:15px;
-    margin-bottom:25px;
-}
-
-.card{
-    background:white;
-    padding:15px;
-    border-radius:8px;
-    text-align:center;
-    box-shadow:0 3px 8px rgba(0,0,0,0.1);
-}
-
-.date-container{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-bottom:20px;
-}
-
-.date-card{
-    background:white;
-    padding:10px 15px;
+select,input{
+    padding:8px;
     border-radius:6px;
-    cursor:pointer;
-    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    border:none;
+    margin-right:10px;
 }
 
 table{
     width:100%;
-    background:white;
     border-collapse:collapse;
+    margin-top:20px;
+    background:#1e293b;
+    border-radius:10px;
+    overflow:hidden;
 }
 
 th,td{
-    padding:10px;
-    border-bottom:1px solid #ddd;
+    padding:12px;
+    text-align:left;
 }
 
 th{
-    background:#d9e2f3;
+    background:#334155;
 }
 
-.row-red{ background:#ffcccc !important; }
-.row-orange{ background:#ffe0b3 !important; }
-.row-grey{ background:#f2f2f2 !important; }
-.row-purple{ background:#e6ccff !important; }
-
-.warning{ background:#ffb3b3 !important; }
-
-.overdue{
-    animation:blink 1s infinite;
+tr{
+    transition:0.3s;
 }
 
-@keyframes blink{
-    0%{background:#ff0000;}
-    50%{background:white;}
-    100%{background:#ff0000;}
+/* STATUS COLORS */
+.row-wrong{
+    background:#7f1d1d !important;
 }
 
-.timer{
-    font-weight:bold;
-    color:#1f4e79;
+.row-not{
+    background:#7c2d12 !important;
 }
 
-/* Modal */
-.modal{
-    display:none;
-    position:fixed;
-    top:0; left:0;
-    width:100%; height:100%;
-    background:rgba(0,0,0,0.4);
-    justify-content:center;
-    align-items:center;
+.row-joined{
+    background:#4c1d95 !important;
 }
 
-.modal-content{
-    background:white;
-    padding:20px;
-    border-radius:8px;
-    width:300px;
+.copy-number{
+    cursor:pointer;
+    color:#38bdf8;
+}
+
+.remark-input{
+    width:100%;
+    padding:6px;
+    border-radius:5px;
+    border:none;
 }
 </style>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
 </head>
 
 <body>
 
 <div class="header">
-<h2>HIS Academy - Agent Corporate Panel</h2>
-<div>
-<span id="agentName"></span>
-<button onclick="auth.signOut()">Logout</button>
+    <h3>HIS Academy - Agent CRM</h3>
+    <div>
+        <input type="date" id="dateSelector">
+        <button onclick="logout()">Logout</button>
+    </div>
 </div>
-</div>
 
-<div class="main">
-
-<h3>Select Date</h3>
-<div id="dates" class="date-container"></div>
-
-<h3>Today's Summary</h3>
-<div id="summary" class="summary"></div>
-
-<h3 id="dateTitle">Leads</h3>
+<div class="container">
 
 <table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Number</th>
-<th>Status</th>
-<th>Timer</th>
-<th>Remark</th>
-</tr>
-</thead>
-<tbody id="leadTable"></tbody>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Number</th>
+            <th>Status</th>
+            <th>Remark</th>
+        </tr>
+    </thead>
+    <tbody id="leadTable"></tbody>
 </table>
 
 </div>
 
-<!-- Followup Modal -->
-<div class="modal" id="followModal">
-<div class="modal-content">
-<h3>Select Follow Up</h3>
-<input type="date" id="followDate" required style="width:100%;margin-bottom:10px;">
-<input type="time" id="followTime" required style="width:100%;margin-bottom:10px;">
-<button onclick="saveFollowUp()" style="width:100%;background:#1f4e79;color:white;padding:8px;">Confirm</button>
-</div>
-</div>
-
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
-  authDomain: "dashboard-bd51c.firebaseapp.com",
-  projectId: "dashboard-bd51c",
-  storageBucket: "dashboard-bd51c.firebasestorage.app",
-  messagingSenderId: "689809644516",
-  appId: "1:689809644516:web:75d6051b300983afb545f1"
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT",
 };
 
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth();
-const db=firebase.firestore();
 
-let agentUID=null;
-let currentLead=null;
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let agentUID = null;
 
 auth.onAuthStateChanged(user=>{
-if(!user){window.location="index.html";return;}
-agentUID=user.uid;
-db.collection("users").doc(agentUID).get().then(doc=>{
-document.getElementById("agentName").innerText=doc.data().name;
-});
-loadDates();
-loadToday();
-});
-
-function loadDates(){
-db.collection("leads").where("assignedTo","==",agentUID)
-.onSnapshot(snap=>{
-let set=new Set();
-snap.forEach(doc=>{
-let d=doc.data();
-if(d.createdAt){
-set.add(d.createdAt.toDate().toDateString());
-}
-});
-let html="";
-set.forEach(date=>{
-html+=`<div class="date-card" onclick="loadLeads('${date}')">${date}</div>`;
-});
-document.getElementById("dates").innerHTML=html;
-});
-}
-
-function loadLeads(date){
-document.getElementById("dateTitle").innerText="Leads - "+date;
-let start=new Date(date); start.setHours(0,0,0,0);
-let end=new Date(date); end.setHours(23,59,59,999);
-
-db.collection("leads")
-.where("assignedTo","==",agentUID)
-.where("createdAt",">=",start)
-.where("createdAt","<=",end)
-.onSnapshot(renderLeads);
-}
-
-function renderLeads(snap){
-let now=Date.now();
-let html="";
-snap.forEach(doc=>{
-let d=doc.data();
-let rowClass="";
-
-if(d.status==="Wrong/Invalid") rowClass="row-red";
-if(d.status==="Not Interested") rowClass="row-orange";
-if(d.status==="Switch Off") rowClass="row-grey";
-if(d.status==="Joined") rowClass="row-purple";
-
-let timer="";
-if(d.followUpTime){
-let diff=d.followUpTime-now;
-
-if(diff>0){
-let mins=Math.floor(diff/60000);
-timer=`<span class="timer">${mins} min</span>`;
-if(mins<=30) rowClass="warning";
-}else{
-let overdueMins=Math.floor(Math.abs(diff)/60000);
-timer=`<span class="timer">${overdueMins} min overdue</span>`;
-rowClass="overdue";
-
-if(overdueMins>=30 && !d.escalated){
-db.collection("leads").doc(doc.id).update({escalated:true});
-db.collection("escalations").add({
-leadId:doc.id,
-agentId:agentUID,
-time:firebase.firestore.FieldValue.serverTimestamp()
-});
-}
-}
-}
-
-html+=`
-<tr class="${rowClass}">
-<td>${d.studentName}</td>
-<td onclick="copyNum('${d.phone}')" style="cursor:pointer;color:#1f4e79;">${d.phone}</td>
-<td>
-<select onchange="statusChange('${doc.id}',this.value)">
-${options(d.status)}
-</select>
-</td>
-<td>${timer}</td>
-<td><input value="${d.remarks||""}" onchange="saveRemark('${doc.id}',this.value)"></td>
-</tr>`;
-});
-document.getElementById("leadTable").innerHTML=html;
-}
-
-function options(current){
-let list=["New","Interested","Follow Up","Not Interested","Switch Off","Wrong/Invalid","Joined"];
-return list.map(s=>`<option ${s===current?"selected":""}>${s}</option>`).join("");
-}
-
-function statusChange(id,status){
-if(status==="Interested"||status==="Follow Up"){
-currentLead=id;
-document.getElementById("followModal").style.display="flex";
-return;
-}
-if(status==="Switch Off"){
-db.collection("leads").doc(id).update({
-status:status,
-followUpTime:Date.now()+(12*60*60*1000)
-});
-return;
-}
-db.collection("leads").doc(id).update({status:status});
-}
-
-function saveFollowUp(){
-let date=document.getElementById("followDate").value;
-let time=document.getElementById("followTime").value;
-
-if(!date||!time){
-alert("Follow up required");
-return;
-}
-
-let full=new Date(date+" "+time).getTime();
-
-db.collection("leads").doc(currentLead).update({
-status:"Follow Up",
-followUpTime:full
+    if(!user){
+        window.location.href="index.html";
+        return;
+    }
+    agentUID = user.uid;
+    setToday();
+    loadLeads();
 });
 
-document.getElementById("followModal").style.display="none";
+function setToday(){
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("dateSelector").value = today;
 }
 
-function saveRemark(id,val){
-db.collection("leads").doc(id).update({remarks:val});
+document.getElementById("dateSelector").addEventListener("change",loadLeads);
+
+function loadLeads(){
+
+    const selectedDate = document.getElementById("dateSelector").value;
+    const start = new Date(selectedDate);
+    const end = new Date(selectedDate);
+    end.setHours(23,59,59,999);
+
+    db.collection("leads")
+    .where("assignedTo","==",agentUID)
+    .where("createdAt",">=",start)
+    .where("createdAt","<=",end)
+    .where("deleted","==",false)
+    .onSnapshot(snapshot=>{
+
+        const table = document.getElementById("leadTable");
+        table.innerHTML="";
+
+        snapshot.forEach(doc=>{
+            const data = doc.data();
+            const rowClass = getRowClass(data.status);
+
+            table.innerHTML += `
+                <tr class="${rowClass}">
+                    <td>${data.studentName}</td>
+                    <td class="copy-number" onclick="copyNumber('${data.phone}')">
+                        ${data.phone}
+                    </td>
+                    <td>
+                        <select onchange="changeStatus('${doc.id}', this.value, '${data.status}')">
+                            ${generateOptions(data.status)}
+                        </select>
+                    </td>
+                    <td>
+                        <input class="remark-input"
+                        value="${data.remarks || ''}"
+                        onchange="saveRemark('${doc.id}', this.value)">
+                    </td>
+                </tr>
+            `;
+        });
+
+    });
 }
 
-function copyNum(num){
-navigator.clipboard.writeText(num);
+function generateOptions(current){
+    const statuses=[
+        "New",
+        "Called",
+        "Interested",
+        "Follow Up",
+        "Not Interested",
+        "Switch Off",
+        "Wrong / Invalid",
+        "Joined"
+    ];
+
+    return statuses.map(s=>
+        `<option value="${s}" ${s===current?"selected":""}>${s}</option>`
+    ).join("");
 }
 
-function loadToday(){
-let start=new Date(); start.setHours(0,0,0,0);
-let end=new Date(); end.setHours(23,59,59,999);
-
-db.collection("leads")
-.where("assignedTo","==",agentUID)
-.where("createdAt",">=",start)
-.where("createdAt","<=",end)
-.onSnapshot(snap=>{
-let assigned=0,joined=0,notInt=0,wrong=0,switchOff=0,int=0;
-snap.forEach(doc=>{
-let d=doc.data(); assigned++;
-if(d.status==="Joined") joined++;
-if(d.status==="Not Interested") notInt++;
-if(d.status==="Wrong/Invalid") wrong++;
-if(d.status==="Switch Off") switchOff++;
-if(d.status==="Interested"||d.status==="Follow Up") int++;
-});
-let pending=assigned-(joined+notInt+wrong+switchOff+int);
-document.getElementById("summary").innerHTML=`
-<div class="card">Assigned<br><b>${assigned}</b></div>
-<div class="card">Pending<br><b>${pending}</b></div>
-<div class="card">Interested/FollowUp<br><b>${int}</b></div>
-<div class="card">Not Interested<br><b>${notInt}</b></div>
-<div class="card">Switch Off<br><b>${switchOff}</b></div>
-<div class="card">Wrong/Invalid<br><b>${wrong}</b></div>
-<div class="card">Joined<br><b>${joined}</b></div>
-`;
-});
+function getRowClass(status){
+    if(status==="Wrong / Invalid") return "row-wrong";
+    if(status==="Not Interested") return "row-not";
+    if(status==="Joined") return "row-joined";
+    return "";
 }
 
-setInterval(()=>{ 
-let title=document.getElementById("dateTitle").innerText;
-if(title.includes("Leads -")){
-let date=title.replace("Leads - ","");
-loadLeads(date);
+function changeStatus(id,newStatus,oldStatus){
+
+    if(newStatus==="Interested" || newStatus==="Follow Up"){
+        const date = prompt("Enter followup date (YYYY-MM-DD)");
+        const time = prompt("Enter followup time (HH:MM)");
+
+        if(!date || !time){
+            alert("Followup required");
+            loadLeads();
+            return;
+        }
+
+        const followUpTime = new Date(date+" "+time).getTime();
+
+        db.collection("leads").doc(id).update({
+            status:newStatus,
+            followUpTime:followUpTime
+        });
+
+        return;
+    }
+
+    if(newStatus==="Switch Off"){
+        const autoTime = Date.now() + (12*60*60*1000);
+
+        db.collection("leads").doc(id).update({
+            status:newStatus,
+            followUpTime:autoTime
+        });
+
+        return;
+    }
+
+    db.collection("leads").doc(id).update({
+        status:newStatus,
+        followUpTime:null
+    });
 }
-},60000);
+
+function saveRemark(id,value){
+    db.collection("leads").doc(id).update({
+        remarks:value
+    });
+}
+
+function copyNumber(number){
+    navigator.clipboard.writeText(number);
+    alert("Copied");
+}
+
+function logout(){
+    auth.signOut();
+}
 </script>
 
 </body>
