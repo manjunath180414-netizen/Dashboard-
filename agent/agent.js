@@ -43,12 +43,19 @@ function getTodayRange(){
 // Load Today Leads
 function loadTodayLeads(){
 
-    const range = getTodayRange();
+    const start = new Date();
+    start.setHours(0,0,0,0);
+
+    const end = new Date();
+    end.setHours(23,59,59,999);
+
+    const startTimestamp = firebase.firestore.Timestamp.fromDate(start);
+    const endTimestamp = firebase.firestore.Timestamp.fromDate(end);
 
     db.collection("leads")
     .where("assignedTo","==",agentUID)
-    .where("createdAt",">=",range.start)
-    .where("createdAt","<=",range.end)
+    .where("createdAt",">=",startTimestamp)
+    .where("createdAt","<=",endTimestamp)
     .onSnapshot(snapshot=>{
 
         const table = document.getElementById("leadTable");
@@ -78,6 +85,7 @@ function loadTodayLeads(){
 
     });
 }
+
 
 function generateStatusOptions(current){
 
