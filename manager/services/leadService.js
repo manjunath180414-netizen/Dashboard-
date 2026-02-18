@@ -1,15 +1,12 @@
-
 import { db } from "./firebase-init.js";
 import {
   collection,
   query,
   orderBy,
   limit,
-  onSnapshot,
-  startAfter
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-let lastVisible = null;
 const pageSize = 25;
 
 export function listenLeads(renderCallback) {
@@ -23,36 +20,34 @@ export function listenLeads(renderCallback) {
   return onSnapshot(q, (snapshot) => {
 
     const leads = [];
+
+    let total = 0;
+    let newCount = 0;
+    let joinedCount = 0;
+    let revenue = 0;
+
     snapshot.forEach(doc => {
-      leads.push({ id: doc.id, ...doc.data() });
+
+      const data = doc.data();
+      leads.push({ id: doc.id, ...data });
+
+      total++;
+
+      if (data.status === "New") {
+        newCount++;
+      }
+
+      if (data.status === "Joined") {
+        joinedCount++;
+        revenue += Number(data.amount || 0);
+      }
     });
 
-    lastVisible = snapshot.docs[snapshot.docs.length - 1];
-
-    renderCallback(leads);
-  });
-}
-
-export function nextPage(renderCallback) {
-
-  if (!lastVisible) return;
-
-  const q = query(
-    collection(db, "leads"),
-    orderBy("createdAt", "desc"),
-    startAfter(lastVisible),
-    limit(pageSize)
-  );
-
-  return onSnapshot(q, (snapshot) => {
-
-    const leads = [];
-    snapshot.forEach(doc => {
-      leads.push({ id: doc.id, ...doc.data() });
+    renderCallback(leads, {
+      total,
+      newCount,
+      joinedCount,
+      revenue
     });
-
-    lastVisible = snapshot.docs[snapshot.docs.length - 1];
-
-    renderCallback(leads);
   });
 }
