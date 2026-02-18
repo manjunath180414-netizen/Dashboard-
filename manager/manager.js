@@ -1,4 +1,4 @@
-import { listenLeads } from "./services/leadService.js";
+import { listenLeads, listenStats } from "./services/leadService.js";
 import { loadAgents, getAgentName, getAllAgents } from "./services/userService.js";
 import { db } from "./services/firebase-init.js";
 import {
@@ -32,19 +32,19 @@ const historyContainer = document.getElementById("historyContainer");
 
 let currentLead = null;
 
-async function init() {
-  await loadAgents();
-  listenLeads(renderLeads);
-}
 
 function renderLeads(leads, stats) {
 
   // Update KPI Cards
+  function updateKPI(stats) {
+
   document.getElementById("totalLeads").innerText = stats.total;
   document.getElementById("newToday").innerText = stats.newCount;
   document.getElementById("joinedCount").innerText = stats.joinedCount;
   document.getElementById("revenueCount").innerText =
     "₹" + stats.revenue.toLocaleString();
+}
+
 
   leadTableBody.innerHTML = "";
 
@@ -201,5 +201,13 @@ async function loadHistory(leadId) {
     historyContainer.appendChild(div);
   });
 }
+async function init() {
+
+  await loadAgents();
+
+  listenLeads(renderLeads);
+  listenStats(updateKPI);
+}
+
 
 init();
