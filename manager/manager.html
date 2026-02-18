@@ -118,6 +118,24 @@
             Reset
           </button>
         </div>
+<!-- Bulk Assign Bar -->
+<div id="bulkBar"
+  class="hidden bg-[#111827] p-4 rounded-2xl flex justify-between items-center">
+
+  <span id="selectedCount">0 Selected</span>
+
+  <div class="flex gap-3">
+    <select id="bulkAgent"
+      class="bg-[#0B1120] border border-gray-700 p-2 rounded-lg">
+      <option value="">Select Agent</option>
+    </select>
+
+    <button id="bulkAssignBtn"
+      class="bg-gradient-to-r from-cyan-500 to-purple-500 px-4 py-2 rounded-lg">
+      Assign
+    </button>
+  </div>
+</div>
 
         <!-- Leads Table -->
         <div class="bg-[#111827] rounded-2xl overflow-x-auto">
