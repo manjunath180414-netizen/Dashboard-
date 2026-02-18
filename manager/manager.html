@@ -209,6 +209,81 @@
 
   </div>
 </div>
+<!-- Lead Detail Modal -->
+<div id="detailModal"
+  class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+
+  <div class="bg-[#111827] w-full max-w-2xl p-6 rounded-2xl shadow-xl overflow-y-auto max-h-[90vh]">
+
+    <h2 class="text-xl font-semibold mb-4">Lead Details</h2>
+
+    <div class="space-y-4">
+
+      <div>
+        <label class="text-gray-400 text-sm">Student Name</label>
+        <p id="detailStudent" class="mt-1"></p>
+      </div>
+
+      <div>
+        <label class="text-gray-400 text-sm">Phone</label>
+        <p id="detailPhone" class="mt-1"></p>
+      </div>
+
+      <div>
+        <label class="text-gray-400 text-sm">Status</label>
+        <select id="detailStatus"
+          class="w-full bg-[#0B1120] border border-gray-700 p-3 rounded-lg mt-1">
+          <option>New</option>
+          <option>Follow Up</option>
+          <option>Not Interested</option>
+          <option>Joined</option>
+          <option>Not Received / Switch Off</option>
+          <option>Invalid / Wrong Number</option>
+        </select>
+      </div>
+
+      <div id="followUpContainer" class="hidden">
+        <label class="text-gray-400 text-sm">Follow Up Time</label>
+        <input id="detailFollowUp"
+          type="datetime-local"
+          class="w-full bg-[#0B1120] border border-gray-700 p-3 rounded-lg mt-1" />
+      </div>
+
+      <div id="amountContainer" class="hidden">
+        <label class="text-gray-400 text-sm">Amount</label>
+        <input id="detailAmount"
+          type="number"
+          placeholder="Enter amount"
+          class="w-full bg-[#0B1120] border border-gray-700 p-3 rounded-lg mt-1" />
+      </div>
+
+      <div>
+        <label class="text-gray-400 text-sm">Remarks</label>
+        <textarea id="detailRemarks"
+          class="w-full bg-[#0B1120] border border-gray-700 p-3 rounded-lg mt-1"></textarea>
+      </div>
+
+      <button id="saveDetail"
+        class="w-full bg-gradient-to-r from-cyan-500 to-purple-500 py-3 rounded-lg">
+        Save Changes
+      </button>
+
+      <hr class="border-gray-700 my-4">
+
+      <h3 class="font-semibold">Activity History</h3>
+      <div id="historyContainer" class="space-y-2 text-sm text-gray-300"></div>
+
+    </div>
+
+    <div class="flex justify-end mt-4">
+      <button id="closeDetailModal"
+        class="px-4 py-2 bg-gray-600 rounded-lg">
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>
 
 <script type="module" src="manager.js"></script>
 
