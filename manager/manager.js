@@ -396,24 +396,21 @@ bulkAssignBtn?.addEventListener("click", async () => {
   updateBulkBar();
 });
 /* ===============================
-   IMPORT LEADS (CSV / EXCEL)
+   IMPORT LEADS WITH ASSIGN OPTION
 ================================ */
 
 const importBtn = document.getElementById("importLeadsBtn");
 const fileInput = document.getElementById("fileInput");
+const importModal = document.getElementById("importAssignModal");
+const importAgentSelect = document.getElementById("importAgentSelect");
+const confirmImport = document.getElementById("confirmImport");
+const cancelImport = document.getElementById("cancelImport");
 
-if (importBtn) {
-  importBtn.onclick = function () {
-    fileInput.click();
-  };
-}
+let parsedImportData = [];
 
-if (fileInput) {
-  fileInput.onchange = function () {
-    alert("File selected successfully");
-  };
-}
-
+importBtn?.addEventListener("click", () => {
+  fileInput.click();
+});
 
 fileInput?.addEventListener("change", async (e) => {
 
@@ -422,7 +419,7 @@ fileInput?.addEventListener("change", async (e) => {
 
   const reader = new FileReader();
 
-  reader.onload = async function (evt) {
+  reader.onload = function (evt) {
 
     const data = new Uint8Array(evt.target.result);
     const workbook = XLSX.read(data, { type: "array" });
@@ -435,7 +432,6 @@ fileInput?.addEventListener("change", async (e) => {
       return;
     }
 
-    // Detect headers
     const headers = Object.keys(jsonData[0]);
 
     let nameKey = null;
@@ -462,7 +458,7 @@ fileInput?.addEventListener("change", async (e) => {
       return;
     }
 
-    const leadsToUpload = [];
+    parsedImportData = [];
 
     jsonData.forEach(row => {
 
@@ -471,63 +467,98 @@ fileInput?.addEventListener("change", async (e) => {
 
       if (!studentName || !phone) return;
 
-      leadsToUpload.push({
-        studentName,
-        phone,
-        status: "New",
-        assignedTo: null,
-        amount: 0,
-        remarks: "",
-        deleted: false,
-        followUpTime: null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      parsedImportData.push({ studentName, phone });
     });
 
-    if (!leadsToUpload.length) {
+    if (!parsedImportData.length) {
       alert("No valid leads found");
       return;
     }
 
-    // Batch upload (500 limit)
-    const { writeBatch, doc } = await import(
-      "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
-    );
-
-    let batch = writeBatch(db);
-    let counter = 0;
-
-    for (let i = 0; i < leadsToUpload.length; i++) {
-
-      const newRef = doc(collection(db, "leads"));
-      batch.set(newRef, leadsToUpload[i]);
-      counter++;
-
-      if (counter === 500) {
-        await batch.commit();
-        batch = writeBatch(db);
-        counter = 0;
-      }
-    }
-
-    if (counter > 0) {
-      await batch.commit();
-    }
-
-    alert(`${leadsToUpload.length} leads imported successfully`);
+    populateImportAgentDropdown();
+    importModal.classList.remove("hidden");
+    importModal.classList.add("flex");
   };
 
   reader.readAsArrayBuffer(file);
 });
-function populateAgentDropdown() {
+
+function populateImportAgentDropdown() {
 
   const agents = getAllAgents();
 
-  if (!agents || Object.keys(agents).length === 0) {
-    bulkAgent.innerHTML = '<option value="">No Agents Found</option>';
-    return;
+  importAgentSelect.innerHTML = '<option value="">Select Agent</option>';
+
+  for (let uid in agents) {
+    const option = document.createElement("option");
+    option.value = uid;
+    option.textContent = agents[uid];
+    importAgentSelect.appendChild(option);
   }
+}
+
+confirmImport?.addEventListener("click", async () => {
+
+  const assignOption = document.querySelector('input[name="assignOption"]:checked').value;
+
+  let assignedTo = null;
+
+  if (assignOption === "yes") {
+    assignedTo = importAgentSelect.value;
+
+    if (!assignedTo) {
+      alert("Select an agent");
+      return;
+    }
+  }
+
+  const { writeBatch, doc } = await import(
+    "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+  );
+
+  let batch = writeBatch(db);
+  let counter = 0;
+
+  for (let i = 0; i < parsedImportData.length; i++) {
+
+    const newRef = doc(collection(db, "leads"));
+
+    batch.set(newRef, {
+      studentName: parsedImportData[i].studentName,
+      phone: parsedImportData[i].phone,
+      status: "New",
+      assignedTo,
+      amount: 0,
+      remarks: "",
+      deleted: false,
+      followUpTime: null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    counter++;
+
+    if (counter === 500) {
+      await batch.commit();
+      batch = writeBatch(db);
+      counter = 0;
+    }
+  }
+
+  if (counter > 0) {
+    await batch.commit();
+  }
+
+  importModal.classList.add("hidden");
+  importModal.classList.remove("flex");
+
+  alert(`${parsedImportData.length} leads imported successfully`);
+});
+
+cancelImport?.addEventListener("click", () => {
+  importModal.classList.add("hidden");
+  importModal.classList.remove("flex");
+});
 
   bulkAgent.innerHTML = '<option value="">Select Agent</option>';
 
