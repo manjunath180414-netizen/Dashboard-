@@ -7,6 +7,7 @@
 
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
   <style>
     body {
@@ -78,6 +79,17 @@
   </button>
 </div>
 
+        <button id="importLeadsBtn"
+  class="bg-gray-700 px-5 py-2 rounded-xl">
+  Import Leads
+</button>
+
+<input type="file"
+  id="fileInput"
+  accept=".csv, .xlsx"
+  class="hidden" />
+
+        
         <!-- KPI Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div class="bg-[#111827] p-6 rounded-2xl shadow-lg">
