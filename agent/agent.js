@@ -12,10 +12,17 @@ let selectedLead = null;
 const table = document.getElementById("leadsTable");
 
 onAuthStateChanged(auth, (user) => {
-  if (!user) return location.href = "/";
+
+  if (!user) {
+    window.location.href = "/index.html";
+    return;
+  }
 
   currentUser = user;
-  loadLeads(currentUser);
+  loadLeads(user);
+
+});
+
 
 });
 
