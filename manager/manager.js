@@ -1,20 +1,31 @@
 import { listenLeads, listenStats } from "./services/leadService.js";
-import { loadAgents, getAgentName, getAllAgents } from "./services/userService.js";
+import { loadAgents, getAgentName } from "./services/userService.js";
 import { db } from "./services/firebase-init.js";
+
 import {
   collection,
   addDoc,
   serverTimestamp,
   doc,
   updateDoc,
-  writeBatch,
   getDocs,
   query,
   orderBy
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-// Elements
+/* ===============================
+   DOM ELEMENTS
+================================ */
+
 const leadTableBody = document.getElementById("leadTableBody");
+
+// KPI
+const totalLeadsEl = document.getElementById("totalLeads");
+const newTodayEl = document.getElementById("newToday");
+const joinedCountEl = document.getElementById("joinedCount");
+const revenueCountEl = document.getElementById("revenueCount");
+
+// Detail Modal
 const detailModal = document.getElementById("detailModal");
 const closeDetailModal = document.getElementById("closeDetailModal");
 const saveDetail = document.getElementById("saveDetail");
@@ -32,66 +43,98 @@ const historyContainer = document.getElementById("historyContainer");
 
 let currentLead = null;
 
+/* ===============================
+   INIT
+================================ */
 
-function renderLeads(leads, stats) {
-
-  // Update KPI Cards
-  function updateKPI(stats) {
-
-  document.getElementById("totalLeads").innerText = stats.total;
-  document.getElementById("newToday").innerText = stats.newCount;
-  document.getElementById("joinedCount").innerText = stats.joinedCount;
-  document.getElementById("revenueCount").innerText =
-    "₹" + stats.revenue.toLocaleString();
+async function init() {
+  await loadAgents();
+  listenLeads(renderLeads);
+  listenStats(updateKPI);
 }
 
+init();
 
+/* ===============================
+   KPI UPDATE (ALL LEADS)
+================================ */
+
+function updateKPI(stats) {
+  totalLeadsEl.innerText = stats.total;
+  newTodayEl.innerText = stats.newCount;
+  joinedCountEl.innerText = stats.joinedCount;
+  revenueCountEl.innerText = "₹" + stats.revenue.toLocaleString();
+}
+
+/* ===============================
+   RENDER TABLE (PAGINATED)
+================================ */
+
+function renderLeads(leads) {
   leadTableBody.innerHTML = "";
 
-  leads.forEach(lead => {
-
+  leads.forEach((lead) => {
     const row = document.createElement("tr");
-    row.className = "border-b border-gray-700 hover:bg-gray-800 transition cursor-pointer";
+    row.className =
+      "border-b border-gray-700 hover:bg-gray-800 transition cursor-pointer";
 
     row.innerHTML = `
-      <td class="p-4">${lead.studentName}</td>
-      <td class="p-4">${lead.phone}</td>
-      <td class="p-4">${lead.status}</td>
-      <td class="p-4">${lead.amount || 0}</td>
-      <td class="p-4">${lead.createdAt ? lead.createdAt.toDate().toLocaleDateString() : ""}</td>
+      <td class="p-4">${lead.studentName || ""}</td>
+      <td class="p-4">${lead.phone || ""}</td>
+      <td class="p-4">${lead.status || "New"}</td>
+      <td class="p-4">${getAgentName(lead.assignedTo)}</td>
+      <td class="p-4">₹${lead.amount || 0}</td>
+      <td class="p-4">
+        ${
+          lead.createdAt
+            ? lead.createdAt.toDate().toLocaleDateString()
+            : ""
+        }
+      </td>
     `;
 
     row.addEventListener("click", () => openDetailModal(lead));
-
     leadTableBody.appendChild(row);
   });
 }
 
-function openDetailModal(lead) {
+/* ===============================
+   OPEN DETAIL MODAL
+================================ */
 
+function openDetailModal(lead) {
   currentLead = lead;
 
-  detailStudent.textContent = lead.studentName;
-  detailPhone.textContent = lead.phone;
-  detailStatus.value = lead.status;
+  detailStudent.textContent = lead.studentName || "";
+  detailPhone.textContent = lead.phone || "";
   detailRemarks.value = lead.remarks || "";
-  detailAmount.value = lead.amount || "";
 
+  // SAFE STATUS SET
+  detailStatus.value = lead.status || "New";
+
+  // FOLLOW UP VALUE
   if (lead.followUpTime) {
     const dt = lead.followUpTime.toDate();
-    detailFollowUp.value = dt.toISOString().slice(0,16);
+    detailFollowUp.value = dt.toISOString().slice(0, 16);
+  } else {
+    detailFollowUp.value = "";
   }
 
-  toggleStatusFields();
+  // AMOUNT
+  detailAmount.value = lead.amount || "";
 
+  toggleStatusFields();
   loadHistory(lead.id);
 
   detailModal.classList.remove("hidden");
   detailModal.classList.add("flex");
 }
 
-function toggleStatusFields() {
+/* ===============================
+   STATUS FIELD TOGGLE
+================================ */
 
+function toggleStatusFields() {
   if (detailStatus.value === "Follow Up") {
     followUpContainer.classList.remove("hidden");
   } else {
@@ -107,15 +150,23 @@ function toggleStatusFields() {
 
 detailStatus.addEventListener("change", toggleStatusFields);
 
+/* ===============================
+   CLOSE MODAL
+================================ */
+
 closeDetailModal.addEventListener("click", () => {
   detailModal.classList.add("hidden");
   detailModal.classList.remove("flex");
 });
 
-// Save Changes
-saveDetail.addEventListener("click", async () => {
+/* ===============================
+   SAVE CHANGES
+================================ */
 
-  const oldStatus = currentLead.status;
+saveDetail.addEventListener("click", async () => {
+  if (!currentLead) return;
+
+  const oldStatus = currentLead.status || "New";
   const newStatus = detailStatus.value;
 
   let updateData = {
@@ -124,27 +175,29 @@ saveDetail.addEventListener("click", async () => {
     updatedAt: serverTimestamp()
   };
 
-  // Follow Up logic
+  // FOLLOW UP LOGIC
   if (newStatus === "Follow Up") {
-
     if (!detailFollowUp.value) {
       alert("Select follow up time");
       return;
     }
 
     updateData.followUpTime = new Date(detailFollowUp.value);
-
   } else {
     if (oldStatus === "Follow Up") {
       updateData.followUpTime = null;
 
-      await logHistory("FOLLOWUP_RESET", oldStatus, newStatus);
+      await logHistory(
+        currentLead.id,
+        "FOLLOWUP_RESET",
+        oldStatus,
+        newStatus
+      );
     }
   }
 
-  // Joined logic
+  // JOINED LOGIC
   if (newStatus === "Joined") {
-
     if (!detailAmount.value) {
       alert("Enter amount");
       return;
@@ -152,21 +205,34 @@ saveDetail.addEventListener("click", async () => {
 
     updateData.amount = Number(detailAmount.value);
 
-    await logHistory("AMOUNT_UPDATED", currentLead.amount || 0, updateData.amount);
+    await logHistory(
+      currentLead.id,
+      "AMOUNT_UPDATED",
+      currentLead.amount || 0,
+      updateData.amount
+    );
   }
 
   await updateDoc(doc(db, "leads", currentLead.id), updateData);
 
-  await logHistory("STATUS_CHANGED", oldStatus, newStatus);
+  await logHistory(
+    currentLead.id,
+    "STATUS_CHANGED",
+    oldStatus,
+    newStatus
+  );
 
   detailModal.classList.add("hidden");
   detailModal.classList.remove("flex");
 });
 
-async function logHistory(type, oldValue, newValue) {
+/* ===============================
+   HISTORY LOGGING
+================================ */
 
+async function logHistory(leadId, type, oldValue, newValue) {
   await addDoc(
-    collection(db, "leads", currentLead.id, "history"),
+    collection(db, "leads", leadId, "history"),
     {
       actionType: type,
       oldValue,
@@ -178,8 +244,11 @@ async function logHistory(type, oldValue, newValue) {
   );
 }
 
-async function loadHistory(leadId) {
+/* ===============================
+   LOAD HISTORY (ON DEMAND)
+================================ */
 
+async function loadHistory(leadId) {
   historyContainer.innerHTML = "";
 
   const q = query(
@@ -189,8 +258,8 @@ async function loadHistory(leadId) {
 
   const snapshot = await getDocs(q);
 
-  snapshot.forEach(doc => {
-    const data = doc.data();
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
 
     const div = document.createElement("div");
     div.className = "bg-[#0B1120] p-3 rounded-lg";
@@ -201,13 +270,3 @@ async function loadHistory(leadId) {
     historyContainer.appendChild(div);
   });
 }
-async function init() {
-
-  await loadAgents();
-
-  listenLeads(renderLeads);
-  listenStats(updateKPI);
-}
-
-
-init();
