@@ -43,7 +43,14 @@ const amountContainer = document.getElementById("amountContainer");
 const historyContainer = document.getElementById("historyContainer");
 
 let currentLead = null;
-// Add Lead Modal
+// Bulk Assign
+const bulkBar = document.getElementById("bulkBar");
+const selectedCount = document.getElementById("selectedCount");
+const bulkAgent = document.getElementById("bulkAgent");
+const bulkAssignBtn = document.getElementById("bulkAssignBtn");
+
+let selectedLeads = new Set();
+
 
 
 /* ===============================
@@ -75,8 +82,11 @@ function updateKPI(stats) {
 
 function renderLeads(leads) {
   leadTableBody.innerHTML = "";
+  selectedLeads.clear();
+  updateBulkBar();
 
   leads.forEach((lead) => {
+
     const row = document.createElement("tr");
     row.className =
       "border-b border-gray-700 hover:bg-gray-800 transition";
@@ -99,7 +109,20 @@ function renderLeads(leads) {
       </td>
     `;
 
-    // Row click opens modal (but not when clicking checkbox)
+    const checkbox = row.querySelector(".lead-checkbox");
+
+    checkbox.addEventListener("change", (e) => {
+
+      if (e.target.checked) {
+        selectedLeads.add(lead.id);
+      } else {
+        selectedLeads.delete(lead.id);
+      }
+
+      updateBulkBar();
+    });
+
+    // Row click (ignore checkbox)
     row.addEventListener("click", (e) => {
       if (!e.target.classList.contains("lead-checkbox")) {
         openDetailModal(lead);
@@ -333,4 +356,43 @@ async function loadHistory(leadId) {
   });
 }
 
+function updateBulkBar() {
+
+  if (selectedLeads.size > 0) {
+    bulkBar.classList.remove("hidden");
+    selectedCount.textContent = `${selectedLeads.size} Selected`;
+  } else {
+    bulkBar.classList.add("hidden");
+  }
+}
+bulkAssignBtn?.addEventListener("click", async () => {
+
+  const agentUID = bulkAgent.value;
+
+  if (!agentUID) {
+    alert("Select an agent");
+    return;
+  }
+
+  const { doc, writeBatch, serverTimestamp } = await import(
+    "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+  );
+
+  const batch = writeBatch(db);
+
+  selectedLeads.forEach((leadId) => {
+    const leadRef = doc(db, "leads", leadId);
+
+    batch.update(leadRef, {
+      assignedTo: agentUID,
+      updatedAt: serverTimestamp()
+    });
+  });
+
+  await batch.commit();
+
+  selectedLeads.clear();
+  bulkAgent.value = "";
+  updateBulkBar();
+});
 
