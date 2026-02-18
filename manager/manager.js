@@ -79,13 +79,16 @@ function renderLeads(leads) {
   leads.forEach((lead) => {
     const row = document.createElement("tr");
     row.className =
-      "border-b border-gray-700 hover:bg-gray-800 transition cursor-pointer";
+      "border-b border-gray-700 hover:bg-gray-800 transition";
 
     row.innerHTML = `
-      <td class="p-4">${lead.studentName || ""}</td>
-      <td class="p-4">${lead.phone || ""}</td>
-      <td class="p-4">${lead.status || "New"}</td>
-      <td class="p-4">${getAgentName(lead.assignedTo)}</td>
+      <td class="p-4">
+        <input type="checkbox" class="lead-checkbox" data-id="${lead.id}" />
+      </td>
+      <td class="p-4 cursor-pointer">${lead.studentName || ""}</td>
+      <td class="p-4 cursor-pointer">${lead.phone || ""}</td>
+      <td class="p-4 cursor-pointer">${lead.status || "New"}</td>
+      <td class="p-4 cursor-pointer">${getAgentName(lead.assignedTo)}</td>
       <td class="p-4">₹${lead.amount || 0}</td>
       <td class="p-4">
         ${
@@ -96,10 +99,17 @@ function renderLeads(leads) {
       </td>
     `;
 
-    row.addEventListener("click", () => openDetailModal(lead));
+    // Row click opens modal (but not when clicking checkbox)
+    row.addEventListener("click", (e) => {
+      if (!e.target.classList.contains("lead-checkbox")) {
+        openDetailModal(lead);
+      }
+    });
+
     leadTableBody.appendChild(row);
   });
 }
+
 
 /* ===============================
    OPEN DETAIL MODAL
