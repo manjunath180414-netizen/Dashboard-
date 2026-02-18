@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Agent Performance</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script type="module" src="leads.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-[#0B1120] text-white p-6">
+
+  <h1 class="text-2xl font-bold mb-6">Agent Performance</h1>
+
+  <!-- Agent Chips -->
+  <div id="agentChips"
+       class="flex gap-4 overflow-x-auto pb-4 border-b border-gray-700">
+  </div>
+
+  <!-- Status Cards -->
+  <div id="statusCards"
+       class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 hidden">
+  </div>
+
+  <!-- Summary Card -->
+  <div id="summaryCard"
+       class="bg-[#111827] rounded-2xl p-6 mt-6 shadow-lg hidden">
+  </div>
+
+  <!-- Filtered Leads Table -->
+  <div class="mt-8 hidden" id="leadsTableContainer">
+    <table class="w-full text-left border border-gray-700">
+      <thead class="bg-[#111827]">
+        <tr>
+          <th class="p-3">Student</th>
+          <th class="p-3">Phone</th>
+          <th class="p-3">Status</th>
+          <th class="p-3">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="leadsTableBody"></tbody>
+    </table>
+  </div>
+
+</body>
+</html>
+
