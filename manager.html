@@ -397,18 +397,11 @@ function renderLeads(snapshot){
     const data = doc.data();
     if(data.deleted) return;
 
-    table.innerHTML += `
-      <tr onclick="openLead('${doc.id}')">
-        <td>${data.studentName}</td>
-        <td>${data.phone}</td>
-        <td>${data.status}</td>
-     <td>${agentMap[data.assignedTo] || "Unassigned"}</td>
-
-        <td>${data.amount || 0}</td>
-      </tr>
-    `;
+    addRow(doc.id, data);
   });
+
 }
+
 
 function nextPage(){
   if(!lastVisible) return;
@@ -808,23 +801,24 @@ function filterByStatus(status){
   });
 
 }
-function addRow(id,data){
+function addRow(id, data){
 
   const table = document.getElementById("leadTable");
 
   table.innerHTML += `
     <tr>
       <td><input type="checkbox" class="leadCheckbox" value="${id}"></td>
-      <td onclick="openLead('${id}')" style="cursor:pointer;color:#60a5fa;">
+      <td onclick="openLead('${id}')" style="cursor:pointer;color:#3b82f6;">
         ${data.studentName}
       </td>
       <td>${data.phone}</td>
       <td>${data.status}</td>
-      <td>${agentMap[data.assignedTo] || "Unassigned"}</td>
+      <td>${data.assignedTo || "Unassigned"}</td>
       <td>${data.amount || 0}</td>
     </tr>
   `;
 }
+
 
 function openLead(id){
 
