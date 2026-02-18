@@ -9,6 +9,7 @@ import {
 
 const pageSize = 25;
 
+// Leads table (pagination)
 export function listenLeads(renderCallback) {
 
   const q = query(
@@ -21,6 +22,21 @@ export function listenLeads(renderCallback) {
 
     const leads = [];
 
+    snapshot.forEach(doc => {
+      leads.push({ id: doc.id, ...doc.data() });
+    });
+
+    renderCallback(leads);
+  });
+}
+
+// KPI stats (ALL leads, no limit)
+export function listenStats(updateStatsCallback) {
+
+  const q = query(collection(db, "leads"));
+
+  return onSnapshot(q, (snapshot) => {
+
     let total = 0;
     let newCount = 0;
     let joinedCount = 0;
@@ -29,8 +45,6 @@ export function listenLeads(renderCallback) {
     snapshot.forEach(doc => {
 
       const data = doc.data();
-      leads.push({ id: doc.id, ...data });
-
       total++;
 
       if (data.status === "New") {
@@ -43,7 +57,7 @@ export function listenLeads(renderCallback) {
       }
     });
 
-    renderCallback(leads, {
+    updateStatsCallback({
       total,
       newCount,
       joinedCount,
