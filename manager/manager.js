@@ -1,3 +1,4 @@
+document.addEventListener("DOMContentLoaded", () => {
 import { listenLeads, listenStats } from "./services/leadService.js";
 import { loadAgents, getAgentName } from "./services/userService.js";
 import { db } from "./services/firebase-init.js";
@@ -328,3 +329,5 @@ async function loadHistory(leadId) {
     historyContainer.appendChild(div);
   });
 }
+  });
+
