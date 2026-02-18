@@ -365,14 +365,14 @@ async function loadHistory(leadId) {
 }
 
 function updateBulkBar() {
-
   if (selectedLeads.size > 0) {
     bulkBar.classList.remove("hidden");
-    selectedCount.textContent = `${selectedLeads.size} Selected`;
+    selectedCount.textContent = selectedLeads.size + " Selected";
   } else {
     bulkBar.classList.add("hidden");
   }
 }
+
 bulkAssignBtn?.addEventListener("click", async () => {
 
   const agentUID = bulkAgent.value;
