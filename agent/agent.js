@@ -15,19 +15,18 @@ onAuthStateChanged(auth, (user) => {
   if (!user) return location.href = "/";
 
   currentUser = user;
-  loadLeads();
+  loadLeads(currentUser);
+
 });
 
-function loadLeads() {
-  subscribeAgentLeads(currentUser.uid, lastVisible, (snapshot) => {
+function loadLeads(user) {
 
-    if (snapshot.docs.length) {
-      lastVisible = snapshot.docs[snapshot.docs.length - 1];
-    }
+  subscribeAgentLeads(user, (leads) => {
 
-    leadsCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    leadsCache = leads;
     renderLeads();
     calculateKPIs();
+
   });
 }
 
