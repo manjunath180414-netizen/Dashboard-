@@ -1,47 +1,37 @@
-// Sidebar Toggle
-const sidebar = document.getElementById("sidebar");
-const collapseBtn = document.getElementById("collapseBtn");
-const mobileMenuBtn = document.getElementById("mobileMenuBtn");
-const overlay = document.getElementById("overlay");
+import { listenLeads, nextPage } from "./services/leadService.js";
+import { loadAgents, getAgentName } from "./services/userService.js";
 
-let collapsed = false;
+const leadTableBody = document.getElementById("leadTableBody");
 
-collapseBtn.addEventListener("click", () => {
-  collapsed = !collapsed;
+async function init() {
 
-  if (collapsed) {
-    sidebar.classList.remove("w-64");
-    sidebar.classList.add("w-20");
-    document.querySelectorAll(".sidebar-text").forEach(el => el.style.display = "none");
-  } else {
-    sidebar.classList.remove("w-20");
-    sidebar.classList.add("w-64");
-    document.querySelectorAll(".sidebar-text").forEach(el => el.style.display = "inline");
-  }
-});
+  await loadAgents();
 
-mobileMenuBtn.addEventListener("click", () => {
-  sidebar.classList.toggle("hidden");
-  overlay.classList.toggle("hidden");
-});
+  listenLeads(renderLeads);
+}
 
-overlay.addEventListener("click", () => {
-  sidebar.classList.add("hidden");
-  overlay.classList.add("hidden");
-});
+function renderLeads(leads) {
 
+  leadTableBody.innerHTML = "";
 
-// KPI Dummy Data (Structured for Firestore later)
-const dashboardData = {
-  totalLeads: 1284,
-  newToday: 32,
-  joined: 210,
-  revenue: 580000
-};
+  leads.forEach(lead => {
 
-// Render KPIs
-document.getElementById("totalLeads").innerText = dashboardData.totalLeads;
-document.getElementById("newToday").innerText = dashboardData.newToday;
-document.getElementById("joinedCount").innerText = dashboardData.joined;
-document.getElementById("revenueCount").innerText =
-  "₹" + dashboardData.revenue.toLocaleString();
+    const row = `
+      <tr class="border-b border-gray-700 hover:bg-gray-800 transition">
+        <td class="p-4"><input type="checkbox" /></td>
+        <td class="p-4">${lead.studentName || ""}</td>
+        <td class="p-4">${lead.phone || ""}</td>
+        <td class="p-4">${lead.status || ""}</td>
+        <td class="p-4">${getAgentName(lead.assignedTo)}</td>
+        <td class="p-4">₹${lead.amount || 0}</td>
+        <td class="p-4">${lead.followUpTime ? "Yes" : "-"}</td>
+        <td class="p-4">${lead.createdAt ? lead.createdAt.toDate().toLocaleDateString() : ""}</td>
+        <td class="p-4">⋮</td>
+      </tr>
+    `;
+
+    leadTableBody.innerHTML += row;
+  });
+}
+
+init();
