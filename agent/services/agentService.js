@@ -2,9 +2,7 @@ import {
   collection,
   query,
   where,
-  orderBy,
   limit,
-  startAfter,
   onSnapshot,
   updateDoc,
   doc,
@@ -15,20 +13,29 @@ import { db } from "./firebase-init.js";
 
 const leadsRef = collection(db, "leads");
 
-export function subscribeAgentLeads(uid, lastDoc, callback) {
-  let q = query(
+/*
+  BULLETPROOF AGENT QUERY
+  - Checks assignedTo = UID OR email
+  - Filters deleted client-side
+  - No orderBy (avoids index error)
+*/
+
+export function subscribeAgentLeads(user, callback) {
+
+  const q = query(
     leadsRef,
-    where("assignedTo", "==", uid),
-    where("deleted", "==", false),
-    orderBy("createdAt", "desc"),
+    where("assignedTo", "in", [user.uid, user.email]),
     limit(25)
   );
 
-  if (lastDoc) {
-    q = query(q, startAfter(lastDoc));
-  }
+  return onSnapshot(q, (snapshot) => {
 
-  return onSnapshot(q, callback);
+    const leads = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(l => l.deleted !== true); // safe boolean check
+
+    callback(leads);
+  });
 }
 
 export async function updateLead(leadId, data) {
@@ -36,4 +43,3 @@ export async function updateLead(leadId, data) {
   data.updatedAt = serverTimestamp();
   await updateDoc(leadDoc, data);
 }
-
