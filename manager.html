@@ -813,26 +813,19 @@ function addRow(id,data){
   const table = document.getElementById("leadTable");
 
   table.innerHTML += `
-    <tr table.innerHTML += `
-<tr>
-  <td><input type="checkbox" class="leadCheckbox" value="${id}"></td>
-  <td onclick="openLead('${id}')">${data.studentName}</td>
-  <td>${data.phone}</td>
-  <td>${data.status}</td>
-  <td>${agentMap[data.assignedTo] || "Unassigned"}</td>
-  <td>${data.amount || 0}</td>
-</tr>
-`;
-
-      <td>${data.studentName}</td>
+    <tr>
+      <td><input type="checkbox" class="leadCheckbox" value="${id}"></td>
+      <td onclick="openLead('${id}')" style="cursor:pointer;color:#60a5fa;">
+        ${data.studentName}
+      </td>
       <td>${data.phone}</td>
       <td>${data.status}</td>
       <td>${agentMap[data.assignedTo] || "Unassigned"}</td>
       <td>${data.amount || 0}</td>
     </tr>
   `;
-
 }
+
 function openLead(id){
 
   db.collection("leads").doc(id).get().then(doc=>{
