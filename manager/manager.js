@@ -130,17 +130,6 @@ function renderLeads(leads) {
 }
 
 
-    // Row click (ignore checkbox)
-    row.addEventListener("click", (e) => {
-      if (!e.target.classList.contains("lead-checkbox")) {
-        openDetailModal(lead);
-      }
-    });
-
-    leadTableBody.appendChild(row);
-  });
-}
-
 
 /* ===============================
    OPEN DETAIL MODAL
