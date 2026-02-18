@@ -297,10 +297,11 @@ function loadAgentLeads(){
                         ${data.phone}
                     </td>
                     <td>
-                        <span class="badge badge-${getBadgeClass(data.status)}">
-                            ${data.status}
-                        </span>
-                    </td>
+  <select onchange="changeStatus('${doc.id}', this.value)" class="status-select">
+    ${generateStatusOptions(data.status)}
+  </select>
+</td>
+
                     <td>${data.followUpTime ? new Date(data.followUpTime).toLocaleString() : "-"}</td>
                     <td>${data.amount || 0}</td>
                     <td>
@@ -339,6 +340,64 @@ function saveRemark(id,value){
         remarks:value,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp()
     });
+
+}
+    function generateStatusOptions(current){
+
+    const statuses = [
+        "New",
+        "Interested",
+        "Not Interested",
+        "Follow Up",
+        "Switch Off",
+        "Joined"
+    ];
+
+    return statuses.map(status => 
+        `<option value="${status}" ${status===current ? "selected" : ""}>${status}</option>`
+    ).join("");
+
+}
+
+function changeStatus(id,newStatus){
+
+    const updateData = {
+        status:newStatus,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    // Clear followUpTime by default
+    updateData.followUpTime = null;
+
+    if(newStatus === "Follow Up"){
+
+        const time = prompt("Enter follow-up time (YYYY-MM-DD HH:MM)");
+
+        if(!time){
+            alert("Follow-up cancelled");
+            return;
+        }
+
+        updateData.followUpTime = new Date(time).getTime();
+    }
+
+    if(newStatus === "Switch Off"){
+        const now = new Date().getTime();
+        updateData.followUpTime = now + (8 * 60 * 60 * 1000);
+    }
+
+    if(newStatus === "Joined"){
+        const amount = prompt("Enter collected amount");
+
+        if(!amount){
+            alert("Amount required");
+            return;
+        }
+
+        updateData.amount = parseInt(amount);
+    }
+
+    db.collection("leads").doc(id).update(updateData);
 
 }
 
