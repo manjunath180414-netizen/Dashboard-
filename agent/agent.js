@@ -54,9 +54,12 @@ function loadTodayLeads(){
 
     db.collection("leads")
     .where("assignedTo","==",agentUID)
+    .where("deleted","==",false)
     .where("createdAt",">=",startTimestamp)
     .where("createdAt","<=",endTimestamp)
     .onSnapshot(snapshot=>{
+
+        console.log("Leads found:", snapshot.size);
 
         const table = document.getElementById("leadTable");
         table.innerHTML="";
@@ -65,20 +68,11 @@ function loadTodayLeads(){
             const data = doc.data();
 
             table.innerHTML += `
-                <tr id="row-${doc.id}" class="${getRowClass(data)}">
+                <tr>
                     <td>${data.studentName}</td>
-                    <td onclick="copyNumber('${data.phone}')" style="cursor:pointer;color:#38bdf8;">
-                        ${data.phone}
-                    </td>
-                    <td>
-                        <select onchange="changeStatus('${doc.id}', this.value)">
-                            ${generateStatusOptions(data.status)}
-                        </select>
-                    </td>
-                    <td>
-                        <input value="${data.remarks || ''}"
-                        onchange="saveRemark('${doc.id}',this.value)">
-                    </td>
+                    <td>${data.phone}</td>
+                    <td>${data.status}</td>
+                    <td>${data.remarks || ""}</td>
                 </tr>
             `;
         });
