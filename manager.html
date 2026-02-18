@@ -194,6 +194,17 @@
   <button onclick="bulkAssign()">Assign Selected</button>
 </div>
 
+const select = document.getElementById("bulkAgentSelect");
+
+snapshot.forEach(doc=>{
+    agentMap[doc.id] = doc.data().name;
+
+    select.innerHTML += `
+      <option value="${doc.id}">
+        ${doc.data().name}
+      </option>
+    `;
+});
 
     <div class="card">
       <input type="text" id="searchInput" placeholder="Search by name or phone" onkeyup="searchLeads()" />
