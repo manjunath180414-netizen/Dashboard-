@@ -524,17 +524,17 @@ function populateAgentDropdown() {
 
   const agents = getAllAgents();
 
-  if (!agents) return;
+  if (!agents || Object.keys(agents).length === 0) {
+    bulkAgent.innerHTML = '<option value="">No Agents Found</option>';
+    return;
+  }
 
-  // Clear previous options
   bulkAgent.innerHTML = '<option value="">Select Agent</option>';
 
   for (let uid in agents) {
-
     const option = document.createElement("option");
     option.value = uid;
     option.textContent = agents[uid];
-
     bulkAgent.appendChild(option);
   }
 }
