@@ -81,6 +81,7 @@ function updateKPI(stats) {
 ================================ */
 
 function renderLeads(leads) {
+
   leadTableBody.innerHTML = "";
   selectedLeads.clear();
   updateBulkBar();
@@ -93,7 +94,7 @@ function renderLeads(leads) {
 
     row.innerHTML = `
       <td class="p-4">
-        <input type="checkbox" class="lead-checkbox" data-id="${lead.id}" />
+        <input type="checkbox" class="lead-checkbox" />
       </td>
       <td class="p-4 cursor-pointer">${lead.studentName || ""}</td>
       <td class="p-4 cursor-pointer">${lead.phone || ""}</td>
@@ -101,19 +102,15 @@ function renderLeads(leads) {
       <td class="p-4 cursor-pointer">${getAgentName(lead.assignedTo)}</td>
       <td class="p-4">₹${lead.amount || 0}</td>
       <td class="p-4">
-        ${
-          lead.createdAt
-            ? lead.createdAt.toDate().toLocaleDateString()
-            : ""
-        }
+        ${lead.createdAt ? lead.createdAt.toDate().toLocaleDateString() : ""}
       </td>
     `;
 
     const checkbox = row.querySelector(".lead-checkbox");
 
-    checkbox.addEventListener("change", (e) => {
+    checkbox.addEventListener("change", function () {
 
-      if (e.target.checked) {
+      if (this.checked) {
         selectedLeads.add(lead.id);
       } else {
         selectedLeads.delete(lead.id);
@@ -121,6 +118,17 @@ function renderLeads(leads) {
 
       updateBulkBar();
     });
+
+    row.addEventListener("click", function (e) {
+      if (!e.target.classList.contains("lead-checkbox")) {
+        openDetailModal(lead);
+      }
+    });
+
+    leadTableBody.appendChild(row);
+  });
+}
+
 
     // Row click (ignore checkbox)
     row.addEventListener("click", (e) => {
