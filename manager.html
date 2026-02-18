@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manager Portal</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      background-color: #0B1120;
+    }
+  </style>
+</head>
+<body class="text-white font-sans">
+
+  <!-- Mobile Overlay -->
+  <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-30"></div>
+
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+      class="bg-[#111827] w-64 transition-all duration-300 flex flex-col z-40">
+
+      <div class="flex items-center justify-between p-4 border-b border-gray-700">
+        <span class="text-xl font-bold">CRM</span>
+        <button id="collapseBtn" class="text-gray-400 hover:text-white">
+          ☰
+        </button>
+      </div>
+
+      <nav class="flex-1 p-4 space-y-3">
+        <a href="#" class="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500">
+          <span>📊</span>
+          <span class="sidebar-text">Dashboard</span>
+        </a>
+        <a href="#" class="flex items-center gap-3 p-3 hover:bg-gray-700 rounded-lg">
+          <span>📋</span>
+          <span class="sidebar-text">Leads</span>
+        </a>
+        <a href="#" class="flex items-center gap-3 p-3 hover:bg-gray-700 rounded-lg">
+          <span>👥</span>
+          <span class="sidebar-text">Agents</span>
+        </a>
+        <a href="#" class="flex items-center gap-3 p-3 hover:bg-gray-700 rounded-lg">
+          <span>⚙</span>
+          <span class="sidebar-text">Settings</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+
+      <!-- Topbar -->
+      <header class="bg-[#111827] p-4 flex justify-between items-center border-b border-gray-700">
+        <button id="mobileMenuBtn" class="md:hidden text-xl">☰</button>
+        <h1 class="text-lg font-semibold">Manager Portal</h1>
+
+        <div class="flex items-center gap-4">
+          <span class="bg-purple-600 px-3 py-1 rounded-full text-sm">Manager</span>
+          <span id="managerName">Manjunath</span>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="flex-1 overflow-y-auto p-6 space-y-6">
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div class="bg-[#111827] p-6 rounded-2xl shadow-lg">
+            <p class="text-gray-400">Total Leads</p>
+            <h2 id="totalLeads" class="text-2xl font-bold mt-2">0</h2>
+          </div>
+
+          <div class="bg-[#111827] p-6 rounded-2xl shadow-lg">
+            <p class="text-gray-400">New Today</p>
+            <h2 id="newToday" class="text-2xl font-bold mt-2">0</h2>
+          </div>
+
+          <div class="bg-[#111827] p-6 rounded-2xl shadow-lg">
+            <p class="text-gray-400">Joined</p>
+            <h2 id="joinedCount" class="text-2xl font-bold mt-2">0</h2>
+          </div>
+
+          <div class="bg-[#111827] p-6 rounded-2xl shadow-lg">
+            <p class="text-gray-400">Revenue</p>
+            <h2 id="revenueCount" class="text-2xl font-bold mt-2">₹0</h2>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="bg-[#111827] p-4 rounded-2xl flex flex-col md:flex-row gap-4">
+          <input type="text" placeholder="Search by name or phone"
+            class="flex-1 bg-[#0B1120] border border-gray-700 p-2 rounded-lg focus:outline-none" />
+
+          <select class="bg-[#0B1120] border border-gray-700 p-2 rounded-lg">
+            <option>Status</option>
+          </select>
+
+          <select class="bg-[#0B1120] border border-gray-700 p-2 rounded-lg">
+            <option>Agent</option>
+          </select>
+
+          <button class="bg-gradient-to-r from-cyan-500 to-purple-500 px-4 py-2 rounded-lg">
+            Reset
+          </button>
+        </div>
+
+        <!-- Leads Table -->
+        <div class="bg-[#111827] rounded-2xl overflow-x-auto">
+          <table class="w-full text-left">
+            <thead class="border-b border-gray-700 text-gray-400">
+              <tr>
+                <th class="p-4">☑</th>
+                <th class="p-4">Student</th>
+                <th class="p-4">Phone</th>
+                <th class="p-4">Status</th>
+                <th class="p-4">Agent</th>
+                <th class="p-4">Amount</th>
+                <th class="p-4">FollowUp</th>
+                <th class="p-4">Created</th>
+                <th class="p-4">⋮</th>
+              </tr>
+            </thead>
+            <tbody id="leadTableBody">
+              <!-- JS Will Render Rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-end gap-4">
+          <button class="bg-gray-700 px-4 py-2 rounded-lg">Previous</button>
+          <button class="bg-gray-700 px-4 py-2 rounded-lg">Next</button>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="manager.js"></script>
+</body>
+</html>
+
