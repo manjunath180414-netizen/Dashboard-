@@ -59,6 +59,7 @@ let selectedLeads = new Set();
 
 async function init() {
   await loadAgents();
+  populateAgentDropdown();
   listenLeads(renderLeads);
   listenStats(updateKPI);
 }
@@ -517,5 +518,21 @@ fileInput?.addEventListener("change", async (e) => {
 
   reader.readAsArrayBuffer(file);
 });
+function populateAgentDropdown() {
 
+  const agents = getAllAgents();
 
+  if (!agents) return;
+
+  // Clear previous options
+  bulkAgent.innerHTML = '<option value="">Select Agent</option>';
+
+  for (let uid in agents) {
+
+    const option = document.createElement("option");
+    option.value = uid;
+    option.textContent = agents[uid];
+
+    bulkAgent.appendChild(option);
+  }
+}
