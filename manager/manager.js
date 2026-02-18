@@ -399,9 +399,18 @@ bulkAssignBtn?.addEventListener("click", async () => {
 const importBtn = document.getElementById("importLeadsBtn");
 const fileInput = document.getElementById("fileInput");
 
-importBtn?.addEventListener("click", () => {
-  fileInput.click();
-});
+if (importBtn) {
+  importBtn.onclick = function () {
+    fileInput.click();
+  };
+}
+
+if (fileInput) {
+  fileInput.onchange = function () {
+    alert("File selected successfully");
+  };
+}
+
 
 fileInput?.addEventListener("change", async (e) => {
 
