@@ -37,7 +37,14 @@ async function init() {
   listenLeads(renderLeads);
 }
 
-function renderLeads(leads) {
+function renderLeads(leads, stats) {
+
+  // Update KPI Cards
+  document.getElementById("totalLeads").innerText = stats.total;
+  document.getElementById("newToday").innerText = stats.newCount;
+  document.getElementById("joinedCount").innerText = stats.joinedCount;
+  document.getElementById("revenueCount").innerText =
+    "₹" + stats.revenue.toLocaleString();
 
   leadTableBody.innerHTML = "";
 
@@ -50,8 +57,7 @@ function renderLeads(leads) {
       <td class="p-4">${lead.studentName}</td>
       <td class="p-4">${lead.phone}</td>
       <td class="p-4">${lead.status}</td>
-      <td class="p-4">${getAgentName(lead.assignedTo)}</td>
-      <td class="p-4">₹${lead.amount || 0}</td>
+      <td class="p-4">${lead.amount || 0}</td>
       <td class="p-4">${lead.createdAt ? lead.createdAt.toDate().toLocaleDateString() : ""}</td>
     `;
 
