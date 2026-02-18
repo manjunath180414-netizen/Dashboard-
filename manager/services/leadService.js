@@ -3,7 +3,6 @@ import { db } from "./firebase-init.js";
 import {
   collection,
   query,
-  where,
   orderBy,
   limit,
   onSnapshot,
@@ -17,7 +16,6 @@ export function listenLeads(renderCallback) {
 
   const q = query(
     collection(db, "leads"),
-    where("deleted", "==", false),
     orderBy("createdAt", "desc"),
     limit(pageSize)
   );
@@ -41,7 +39,6 @@ export function nextPage(renderCallback) {
 
   const q = query(
     collection(db, "leads"),
-    where("deleted", "==", false),
     orderBy("createdAt", "desc"),
     startAfter(lastVisible),
     limit(pageSize)
