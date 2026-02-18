@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+
 import { listenLeads, listenStats } from "./services/leadService.js";
 import { loadAgents, getAgentName } from "./services/userService.js";
 import { db } from "./services/firebase-init.js";
@@ -44,68 +44,7 @@ const historyContainer = document.getElementById("historyContainer");
 
 let currentLead = null;
 // Add Lead Modal
-// ADD LEAD MODAL LOGIC
 
-window.addEventListener("load", () => {
-
-  const openBtn = document.getElementById("openLeadModal");
-  const modal = document.getElementById("leadModal");
-  const closeBtn = document.getElementById("closeLeadModal");
-  const saveBtn = document.getElementById("saveLead");
-
-  const nameInput = document.getElementById("leadStudentName");
-  const phoneInput = document.getElementById("leadPhone");
-  const agentInput = document.getElementById("leadAgent");
-
-  if (openBtn) {
-    openBtn.onclick = function () {
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-    };
-  }
-
-  if (closeBtn) {
-    closeBtn.onclick = function () {
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-    };
-  }
-
-  if (saveBtn) {
-    saveBtn.onclick = async function () {
-
-      const studentName = nameInput.value.trim();
-      const phone = phoneInput.value.trim();
-      const assignedTo = agentInput.value || null;
-
-      if (!studentName || !phone) {
-        alert("Please fill all required fields");
-        return;
-      }
-
-      await addDoc(collection(db, "leads"), {
-        studentName,
-        phone,
-        status: "New",
-        assignedTo,
-        amount: 0,
-        remarks: "",
-        deleted: false,
-        followUpTime: null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-
-      nameInput.value = "";
-      phoneInput.value = "";
-      agentInput.value = "";
-    };
-  }
-
-});
 
 /* ===============================
    INIT
@@ -383,5 +322,5 @@ async function loadHistory(leadId) {
     historyContainer.appendChild(div);
   });
 }
-  });
+
 
