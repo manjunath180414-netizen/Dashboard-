@@ -22,3 +22,6 @@ export async function loadAgents() {
 export function getAgentName(uid) {
   return agentMap[uid] || "Unassigned";
 }
+export function getAllAgents() {
+  return agentMap;
+}
