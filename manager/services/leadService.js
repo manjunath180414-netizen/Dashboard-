@@ -7,7 +7,7 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-const pageSize = 25;
+const pageSize = 100;
 
 // Leads table (pagination)
 export function listenLeads(renderCallback) {
