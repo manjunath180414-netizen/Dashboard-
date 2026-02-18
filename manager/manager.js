@@ -42,6 +42,15 @@ const amountContainer = document.getElementById("amountContainer");
 const historyContainer = document.getElementById("historyContainer");
 
 let currentLead = null;
+// Add Lead Modal
+const openLeadModal = document.getElementById("openLeadModal");
+const leadModal = document.getElementById("leadModal");
+const closeLeadModal = document.getElementById("closeLeadModal");
+const saveLead = document.getElementById("saveLead");
+
+const leadStudentName = document.getElementById("leadStudentName");
+const leadPhone = document.getElementById("leadPhone");
+const leadAgent = document.getElementById("leadAgent");
 
 /* ===============================
    INIT
@@ -225,6 +234,55 @@ saveDetail.addEventListener("click", async () => {
   detailModal.classList.add("hidden");
   detailModal.classList.remove("flex");
 });
+/* ===============================
+   ADD LEAD MODAL
+================================ */
+
+// Open modal
+openLeadModal?.addEventListener("click", () => {
+  leadModal.classList.remove("hidden");
+  leadModal.classList.add("flex");
+});
+
+// Close modal
+closeLeadModal?.addEventListener("click", () => {
+  leadModal.classList.add("hidden");
+  leadModal.classList.remove("flex");
+});
+
+// Save new lead
+saveLead?.addEventListener("click", async () => {
+
+  const studentName = leadStudentName.value.trim();
+  const phone = leadPhone.value.trim();
+  const assignedTo = leadAgent.value || null;
+
+  if (!studentName || !phone) {
+    alert("Please fill all required fields");
+    return;
+  }
+
+  await addDoc(collection(db, "leads"), {
+    studentName,
+    phone,
+    status: "New",
+    assignedTo,
+    amount: 0,
+    remarks: "",
+    deleted: false,
+    followUpTime: null,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+
+  leadModal.classList.add("hidden");
+  leadModal.classList.remove("flex");
+
+  leadStudentName.value = "";
+  leadPhone.value = "";
+  leadAgent.value = "";
+});
+
 
 /* ===============================
    HISTORY LOGGING
