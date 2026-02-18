@@ -392,4 +392,121 @@ bulkAssignBtn?.addEventListener("click", async () => {
   bulkAgent.value = "";
   updateBulkBar();
 });
+/* ===============================
+   IMPORT LEADS (CSV / EXCEL)
+================================ */
+
+const importBtn = document.getElementById("importLeadsBtn");
+const fileInput = document.getElementById("fileInput");
+
+importBtn?.addEventListener("click", () => {
+  fileInput.click();
+});
+
+fileInput?.addEventListener("change", async (e) => {
+
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = async function (evt) {
+
+    const data = new Uint8Array(evt.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    if (!jsonData.length) {
+      alert("File is empty");
+      return;
+    }
+
+    // Detect headers
+    const headers = Object.keys(jsonData[0]);
+
+    let nameKey = null;
+    let phoneKey = null;
+
+    headers.forEach(header => {
+      const normalized = header.toLowerCase().replace(/\s/g, "");
+
+      if (!nameKey && normalized.includes("name")) {
+        nameKey = header;
+      }
+
+      if (!phoneKey && (
+        normalized.includes("number") ||
+        normalized.includes("phone") ||
+        normalized.includes("mobile")
+      )) {
+        phoneKey = header;
+      }
+    });
+
+    if (!nameKey || !phoneKey) {
+      alert("Could not detect Name and Phone columns");
+      return;
+    }
+
+    const leadsToUpload = [];
+
+    jsonData.forEach(row => {
+
+      const studentName = row[nameKey]?.toString().trim();
+      const phone = row[phoneKey]?.toString().trim();
+
+      if (!studentName || !phone) return;
+
+      leadsToUpload.push({
+        studentName,
+        phone,
+        status: "New",
+        assignedTo: null,
+        amount: 0,
+        remarks: "",
+        deleted: false,
+        followUpTime: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    });
+
+    if (!leadsToUpload.length) {
+      alert("No valid leads found");
+      return;
+    }
+
+    // Batch upload (500 limit)
+    const { writeBatch, doc } = await import(
+      "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+    );
+
+    let batch = writeBatch(db);
+    let counter = 0;
+
+    for (let i = 0; i < leadsToUpload.length; i++) {
+
+      const newRef = doc(collection(db, "leads"));
+      batch.set(newRef, leadsToUpload[i]);
+      counter++;
+
+      if (counter === 500) {
+        await batch.commit();
+        batch = writeBatch(db);
+        counter = 0;
+      }
+    }
+
+    if (counter > 0) {
+      await batch.commit();
+    }
+
+    alert(`${leadsToUpload.length} leads imported successfully`);
+  };
+
+  reader.readAsArrayBuffer(file);
+});
+
 
