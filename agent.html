@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>HIS Academy - Agent CRM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+body{
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background:#f4f6f9;
+}
+
+.header{
+    background:#111827;
+    color:white;
+    padding:15px 25px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.header h2{
+    margin:0;
+    font-size:18px;
+}
+
+.container{
+    padding:25px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:8px;
+    overflow:hidden;
+    box-shadow:0 4px 10px rgba(0,0,0,0.05);
+}
+
+th, td{
+    padding:12px;
+    text-align:left;
+}
+
+th{
+    background:#f1f3f6;
+}
+
+tr:nth-child(even){
+    background:#fafafa;
+}
+
+.status-wrong{
+    background:#ffe5e5 !important;
+}
+
+.status-not{
+    background:#fff4e5 !important;
+}
+
+.status-joined{
+    background:#efe9ff !important;
+}
+
+.status-followup{
+    background:#e6f9f0 !important;
+}
+
+select{
+    padding:6px;
+    border-radius:5px;
+}
+
+input{
+    padding:6px;
+    width:100%;
+    border-radius:5px;
+    border:1px solid #ccc;
+}
+
+.copy{
+    cursor:pointer;
+    color:#2563eb;
+}
+
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+</head>
+<body>
+
+<div class="header">
+    <h2>HIS Academy - Agent CRM</h2>
+    <button onclick="logout()">Logout</button>
+</div>
+
+<div class="container">
+
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Number</th>
+                <th>Status</th>
+                <th>Remark</th>
+            </tr>
+        </thead>
+        <tbody id="leadTable"></tbody>
+    </table>
+
+</div>
+
+<script>
+
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let agentUID = null;
+
+// AUTH
+auth.onAuthStateChanged(user=>{
+    if(!user){
+        window.location.href="index.html";
+        return;
+    }
+
+    agentUID = user.uid;
+    console.log("Logged in UID:", agentUID);
+    loadTodayLeads();
+});
+
+// LOAD TODAY LEADS
+function loadTodayLeads(){
+
+    const start = new Date();
+    start.setHours(0,0,0,0);
+
+    const end = new Date();
+    end.setHours(23,59,59,999);
+
+    const startTimestamp = firebase.firestore.Timestamp.fromDate(start);
+    const endTimestamp = firebase.firestore.Timestamp.fromDate(end);
+
+    db.collection("leads")
+    .where("assignedTo","==",agentUID)
+    .where("deleted","==",false)
+    .where("createdAt",">=",startTimestamp)
+    .where("createdAt","<=",endTimestamp)
+    .onSnapshot(snapshot=>{
+
+        console.log("Leads found:", snapshot.size);
+
+        const table = document.getElementById("leadTable");
+        table.innerHTML="";
+
+        snapshot.forEach(doc=>{
+
+            const data = doc.data();
+            const rowClass = getRowClass(data.status);
+
+            table.innerHTML += `
+                <tr class="${rowClass}">
+                    <td>${data.studentName || ""}</td>
+                    <td class="copy" onclick="copyNumber('${data.phone}')">
+                        ${data.phone || ""}
+                    </td>
+                    <td>
+                        <select onchange="changeStatus('${doc.id}',this.value)">
+                            ${generateStatusOptions(data.status)}
+                        </select>
+                    </td>
+                    <td>
+                        <input value="${data.remarks || ""}"
+                        onchange="saveRemark('${doc.id}',this.value)">
+                    </td>
+                </tr>
+            `;
+        });
+
+    }, error=>{
+        console.error("Error:", error);
+    });
+}
+
+// STATUS OPTIONS
+function generateStatusOptions(current){
+
+    const statuses = [
+        "New",
+        "Interested",
+        "Follow Up",
+        "Not Interested",
+        "Switch Off",
+        "Wrong/Invalid",
+        "Joined"
+    ];
+
+    return statuses.map(status =>
+        `<option value="${status}" ${status===current?"selected":""}>${status}</option>`
+    ).join("");
+}
+
+// ROW COLOR
+function getRowClass(status){
+    if(status==="Wrong/Invalid") return "status-wrong";
+    if(status==="Not Interested") return "status-not";
+    if(status==="Joined") return "status-joined";
+    if(status==="Follow Up" || status==="Interested") return "status-followup";
+    return "";
+}
+
+// COPY NUMBER
+function copyNumber(number){
+    navigator.clipboard.writeText(number);
+    alert("Number Copied");
+}
+
+// SAVE REMARK
+function saveRemark(id,value){
+    db.collection("leads").doc(id).update({
+        remarks:value,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// CHANGE STATUS
+function changeStatus(id,newStatus){
+
+    if(newStatus==="Interested" || newStatus==="Follow Up"){
+
+        const date = prompt("Enter Followup Date (YYYY-MM-DD)");
+        const time = prompt("Enter Followup Time (HH:MM)");
+
+        if(!date || !time){
+            alert("Followup required");
+            return;
+        }
+
+        const followUpTime = new Date(date+" "+time);
+
+        db.collection("leads").doc(id).update({
+            status:"Follow Up",
+            followUpTime: firebase.firestore.Timestamp.fromDate(followUpTime),
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        return;
+    }
+
+    if(newStatus==="Switch Off"){
+
+        const followUpTime = new Date(Date.now() + (12*60*60*1000));
+
+        db.collection("leads").doc(id).update({
+            status:"Switch Off",
+            followUpTime: firebase.firestore.Timestamp.fromDate(followUpTime),
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        return;
+    }
+
+    db.collection("leads").doc(id).update({
+        status:newStatus,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+function logout(){
+    auth.signOut();
+}
+
+</script>
+
+</body>
+</html>
