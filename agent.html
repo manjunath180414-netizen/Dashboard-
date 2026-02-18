@@ -2,18 +2,18 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>HIS Academy - Agent WAR Panel</title>
+<title>HIS Academy - Agent Corporate Panel</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
     margin:0;
-    font-family:Arial;
-    background:#f4f6f9;
+    font-family: 'Segoe UI', Arial;
+    background:#eef2f7;
 }
 
 .header{
-    background:#1e3c72;
+    background:#1f4e79;
     color:white;
     padding:15px 25px;
     display:flex;
@@ -23,6 +23,26 @@ body{
 
 .main{
     padding:20px;
+}
+
+h3{
+    color:#1f4e79;
+    margin-bottom:10px;
+}
+
+.summary{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:15px;
+    margin-bottom:25px;
+}
+
+.card{
+    background:white;
+    padding:15px;
+    border-radius:8px;
+    text-align:center;
+    box-shadow:0 3px 8px rgba(0,0,0,0.1);
 }
 
 .date-container{
@@ -35,30 +55,15 @@ body{
 .date-card{
     background:white;
     padding:10px 15px;
-    border-radius:8px;
+    border-radius:6px;
     cursor:pointer;
-    box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-
-.summary-cards{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-    gap:15px;
-    margin-bottom:20px;
-}
-
-.summary-card{
-    background:white;
-    padding:15px;
-    border-radius:10px;
-    text-align:center;
-    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 table{
     width:100%;
-    border-collapse:collapse;
     background:white;
+    border-collapse:collapse;
 }
 
 th,td{
@@ -66,14 +71,16 @@ th,td{
     border-bottom:1px solid #ddd;
 }
 
-.row-red{ background:#ffdddd; }
-.row-orange{ background:#ffe5cc; }
-.row-purple{ background:#f3e6ff; }
-.row-grey{ background:#eeeeee; }
-
-.warning{
-    background:#ffcccc !important;
+th{
+    background:#d9e2f3;
 }
+
+.row-red{ background:#ffcccc !important; }
+.row-orange{ background:#ffe0b3 !important; }
+.row-grey{ background:#f2f2f2 !important; }
+.row-purple{ background:#e6ccff !important; }
+
+.warning{ background:#ffb3b3 !important; }
 
 .overdue{
     animation:blink 1s infinite;
@@ -81,8 +88,31 @@ th,td{
 
 @keyframes blink{
     0%{background:#ff0000;}
-    50%{background:#ffffff;}
+    50%{background:white;}
     100%{background:#ff0000;}
+}
+
+.timer{
+    font-weight:bold;
+    color:#1f4e79;
+}
+
+/* Modal */
+.modal{
+    display:none;
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.4);
+    justify-content:center;
+    align-items:center;
+}
+
+.modal-content{
+    background:white;
+    padding:20px;
+    border-radius:8px;
+    width:300px;
 }
 </style>
 
@@ -94,22 +124,22 @@ th,td{
 <body>
 
 <div class="header">
-    <h2>HIS Academy - Agent WAR Panel</h2>
-    <div>
-        <span id="agentName"></span>
-        <button onclick="logout()">Logout</button>
-    </div>
+<h2>HIS Academy - Agent Corporate Panel</h2>
+<div>
+<span id="agentName"></span>
+<button onclick="auth.signOut()">Logout</button>
+</div>
 </div>
 
 <div class="main">
 
 <h3>Select Date</h3>
-<div id="dateContainer" class="date-container"></div>
+<div id="dates" class="date-container"></div>
 
-<h3>Today's Performance</h3>
-<div class="summary-cards" id="todaySummary"></div>
+<h3>Today's Summary</h3>
+<div id="summary" class="summary"></div>
 
-<h3 id="selectedDateTitle">Leads</h3>
+<h3 id="dateTitle">Leads</h3>
 
 <table>
 <thead>
@@ -117,6 +147,7 @@ th,td{
 <th>Name</th>
 <th>Number</th>
 <th>Status</th>
+<th>Timer</th>
 <th>Remark</th>
 </tr>
 </thead>
@@ -125,250 +156,209 @@ th,td{
 
 </div>
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
-  authDomain: "dashboard-bd51c.firebaseapp.com",
-  projectId: "dashboard-bd51c",
-  storageBucket: "dashboard-bd51c.firebasestorage.app",
-  messagingSenderId: "689809644516",
-  appId: "1:689809644516:web:75d6051b300983afb545f1"
-};
-firebase.initializeApp(firebaseConfig);
+<!-- Followup Modal -->
+<div class="modal" id="followModal">
+<div class="modal-content">
+<h3>Select Follow Up</h3>
+<input type="date" id="followDate" required style="width:100%;margin-bottom:10px;">
+<input type="time" id="followTime" required style="width:100%;margin-bottom:10px;">
+<button onclick="saveFollowUp()" style="width:100%;background:#1f4e79;color:white;padding:8px;">Confirm</button>
+</div>
+</div>
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+<script>
+const firebaseConfig={
+apiKey:"YOUR_API_KEY",
+authDomain:"dashboard-bd51c.firebaseapp.com",
+projectId:"dashboard-bd51c"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.firestore();
 
 let agentUID=null;
-let currentSelectedDate=null;
+let currentLead=null;
 
 auth.onAuthStateChanged(user=>{
-    if(!user){
-        window.location.href="index.html";
-        return;
-    }
-
-    agentUID=user.uid;
-
-    db.collection("users").doc(agentUID).get().then(doc=>{
-        document.getElementById("agentName").innerText=doc.data().name;
-    });
-
-    loadAvailableDates();
-    loadTodaySummary();
+if(!user){window.location="index.html";return;}
+agentUID=user.uid;
+db.collection("users").doc(agentUID).get().then(doc=>{
+document.getElementById("agentName").innerText=doc.data().name;
+});
+loadDates();
+loadToday();
 });
 
-function logout(){
-    auth.signOut();
+function loadDates(){
+db.collection("leads").where("assignedTo","==",agentUID)
+.onSnapshot(snap=>{
+let set=new Set();
+snap.forEach(doc=>{
+let d=doc.data();
+if(d.createdAt){
+set.add(d.createdAt.toDate().toDateString());
 }
-
-function loadAvailableDates(){
-
-db.collection("leads")
-.where("assignedTo","==",agentUID)
-.where("deleted","==",false)
-.onSnapshot(snapshot=>{
-
-    const uniqueDates=new Set();
-
-    snapshot.forEach(doc=>{
-        const data=doc.data();
-        if(data.createdAt){
-            const d=data.createdAt.toDate();
-            uniqueDates.add(d.toDateString());
-        }
-    });
-
-    const container=document.getElementById("dateContainer");
-    container.innerHTML="";
-
-    uniqueDates.forEach(date=>{
-        container.innerHTML+=`
-            <div class="date-card" onclick="loadLeadsByDate('${date}')">
-                ${date}
-            </div>
-        `;
-    });
-
+});
+let html="";
+set.forEach(date=>{
+html+=`<div class="date-card" onclick="loadLeads('${date}')">${date}</div>`;
+});
+document.getElementById("dates").innerHTML=html;
 });
 }
 
-function loadLeadsByDate(date){
-
-currentSelectedDate=date;
-document.getElementById("selectedDateTitle").innerText="Leads - "+date;
-
-const start=new Date(date);
-start.setHours(0,0,0,0);
-
-const end=new Date(date);
-end.setHours(23,59,59,999);
+function loadLeads(date){
+document.getElementById("dateTitle").innerText="Leads - "+date;
+let start=new Date(date); start.setHours(0,0,0,0);
+let end=new Date(date); end.setHours(23,59,59,999);
 
 db.collection("leads")
 .where("assignedTo","==",agentUID)
 .where("createdAt",">=",start)
 .where("createdAt","<=",end)
-.where("deleted","==",false)
-.onSnapshot(snapshot=>{
-    renderLeads(snapshot);
+.onSnapshot(renderLeads);
+}
+
+function renderLeads(snap){
+let now=Date.now();
+let html="";
+snap.forEach(doc=>{
+let d=doc.data();
+let rowClass="";
+
+if(d.status==="Wrong/Invalid") rowClass="row-red";
+if(d.status==="Not Interested") rowClass="row-orange";
+if(d.status==="Switch Off") rowClass="row-grey";
+if(d.status==="Joined") rowClass="row-purple";
+
+let timer="";
+if(d.followUpTime){
+let diff=d.followUpTime-now;
+
+if(diff>0){
+let mins=Math.floor(diff/60000);
+timer=`<span class="timer">${mins} min</span>`;
+if(mins<=30) rowClass="warning";
+}else{
+let overdueMins=Math.floor(Math.abs(diff)/60000);
+timer=`<span class="timer">${overdueMins} min overdue</span>`;
+rowClass="overdue";
+
+if(overdueMins>=30 && !d.escalated){
+db.collection("leads").doc(doc.id).update({escalated:true});
+db.collection("escalations").add({
+leadId:doc.id,
+agentId:agentUID,
+time:firebase.firestore.FieldValue.serverTimestamp()
 });
 }
+}
+}
 
-function renderLeads(snapshot){
-
-const table=document.getElementById("leadTable");
-table.innerHTML="";
-
-const now=Date.now();
-
-snapshot.forEach(doc=>{
-    const data=doc.data();
-    let rowClass="";
-
-    if(data.status==="Wrong/Invalid") rowClass="row-red";
-    if(data.status==="Not Interested") rowClass="row-orange";
-    if(data.status==="Joined") rowClass="row-purple";
-    if(data.status==="Switch Off") rowClass="row-grey";
-
-    if(data.followUpTime){
-
-        const remaining=data.followUpTime-now;
-
-        if(remaining<1800000 && remaining>0){
-            rowClass+=" warning";
-        }
-
-        if(now>data.followUpTime){
-
-            rowClass+=" overdue";
-
-            if(!data.escalated){
-                db.collection("leads").doc(doc.id).update({escalated:true});
-                db.collection("escalations").add({
-                    leadId:doc.id,
-                    agentId:agentUID,
-                    escalatedAt:firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-        }
-    }
-
-    table.innerHTML+=`
-        <tr class="${rowClass}">
-        <td>${data.studentName}</td>
-        <td onclick="copyNumber('${data.phone}')" style="cursor:pointer;color:blue;">
-            ${data.phone}
-        </td>
-        <td>
-            <select onchange="changeStatus('${doc.id}',this.value)">
-                ${generateOptions(data.status)}
-            </select>
-        </td>
-        <td>
-            <input value="${data.remarks||""}" 
-            onchange="saveRemark('${doc.id}',this.value)">
-        </td>
-        </tr>
-    `;
+html+=`
+<tr class="${rowClass}">
+<td>${d.studentName}</td>
+<td onclick="copyNum('${d.phone}')" style="cursor:pointer;color:#1f4e79;">${d.phone}</td>
+<td>
+<select onchange="statusChange('${doc.id}',this.value)">
+${options(d.status)}
+</select>
+</td>
+<td>${timer}</td>
+<td><input value="${d.remarks||""}" onchange="saveRemark('${doc.id}',this.value)"></td>
+</tr>`;
 });
+document.getElementById("leadTable").innerHTML=html;
 }
 
-function generateOptions(current){
-
-const statuses=[
-"New",
-"Interested",
-"Follow Up",
-"Not Interested",
-"Switch Off",
-"Wrong/Invalid",
-"Joined"
-];
-
-return statuses.map(s=>
-`<option ${s===current?"selected":""}>${s}</option>`
-).join("");
+function options(current){
+let list=["New","Interested","Follow Up","Not Interested","Switch Off","Wrong/Invalid","Joined"];
+return list.map(s=>`<option ${s===current?"selected":""}>${s}</option>`).join("");
 }
 
-function changeStatus(id,status){
-
-let updateData={
-status:status,
-updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-};
-
+function statusChange(id,status){
 if(status==="Interested"||status==="Follow Up"){
-    const date=prompt("Enter followup date (YYYY-MM-DD)");
-    const time=prompt("Enter followup time (HH:MM)");
-
-    if(!date||!time){
-        alert("Followup required");
-        return;
-    }
-
-    updateData.followUpTime=new Date(date+" "+time).getTime();
+currentLead=id;
+document.getElementById("followModal").style.display="flex";
+return;
 }
-
 if(status==="Switch Off"){
-    updateData.followUpTime=Date.now()+(12*60*60*1000);
-}
-
-db.collection("leads").doc(id).update(updateData);
-}
-
-function saveRemark(id,value){
 db.collection("leads").doc(id).update({
-remarks:value,
-updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+status:status,
+followUpTime:Date.now()+(12*60*60*1000)
 });
+return;
+}
+db.collection("leads").doc(id).update({status:status});
 }
 
-function copyNumber(number){
-navigator.clipboard.writeText(number);
+function saveFollowUp(){
+let date=document.getElementById("followDate").value;
+let time=document.getElementById("followTime").value;
+
+if(!date||!time){
+alert("Follow up required");
+return;
 }
 
-function loadTodaySummary(){
+let full=new Date(date+" "+time).getTime();
 
-const start=new Date();
-start.setHours(0,0,0,0);
+db.collection("leads").doc(currentLead).update({
+status:"Follow Up",
+followUpTime:full
+});
 
-const end=new Date();
-end.setHours(23,59,59,999);
+document.getElementById("followModal").style.display="none";
+}
+
+function saveRemark(id,val){
+db.collection("leads").doc(id).update({remarks:val});
+}
+
+function copyNum(num){
+navigator.clipboard.writeText(num);
+}
+
+function loadToday(){
+let start=new Date(); start.setHours(0,0,0,0);
+let end=new Date(); end.setHours(23,59,59,999);
 
 db.collection("leads")
 .where("assignedTo","==",agentUID)
 .where("createdAt",">=",start)
 .where("createdAt","<=",end)
-.where("deleted","==",false)
-.onSnapshot(snapshot=>{
-
-let assigned=0,interested=0,notInt=0,switchOff=0,wrong=0,joined=0;
-
-snapshot.forEach(doc=>{
-const d=doc.data();
-assigned++;
-
-if(d.status==="Interested"||d.status==="Follow Up") interested++;
-if(d.status==="Not Interested") notInt++;
-if(d.status==="Switch Off") switchOff++;
-if(d.status==="Wrong/Invalid") wrong++;
+.onSnapshot(snap=>{
+let assigned=0,joined=0,notInt=0,wrong=0,switchOff=0,int=0;
+snap.forEach(doc=>{
+let d=doc.data(); assigned++;
 if(d.status==="Joined") joined++;
+if(d.status==="Not Interested") notInt++;
+if(d.status==="Wrong/Invalid") wrong++;
+if(d.status==="Switch Off") switchOff++;
+if(d.status==="Interested"||d.status==="Follow Up") int++;
 });
-
-const pending=assigned-(interested+notInt+switchOff+wrong+joined);
-
-document.getElementById("todaySummary").innerHTML=`
-<div class="summary-card">Assigned<br><b>${assigned}</b></div>
-<div class="summary-card">Pending<br><b>${pending}</b></div>
-<div class="summary-card">Interested/FollowUp<br><b>${interested}</b></div>
-<div class="summary-card">Not Interested<br><b>${notInt}</b></div>
-<div class="summary-card">Switch Off<br><b>${switchOff}</b></div>
-<div class="summary-card">Wrong/Invalid<br><b>${wrong}</b></div>
-<div class="summary-card">Joined<br><b>${joined}</b></div>
+let pending=assigned-(joined+notInt+wrong+switchOff+int);
+document.getElementById("summary").innerHTML=`
+<div class="card">Assigned<br><b>${assigned}</b></div>
+<div class="card">Pending<br><b>${pending}</b></div>
+<div class="card">Interested/FollowUp<br><b>${int}</b></div>
+<div class="card">Not Interested<br><b>${notInt}</b></div>
+<div class="card">Switch Off<br><b>${switchOff}</b></div>
+<div class="card">Wrong/Invalid<br><b>${wrong}</b></div>
+<div class="card">Joined<br><b>${joined}</b></div>
 `;
 });
 }
 
+setInterval(()=>{ 
+let title=document.getElementById("dateTitle").innerText;
+if(title.includes("Leads -")){
+let date=title.replace("Leads - ","");
+loadLeads(date);
+}
+},60000);
 </script>
+
 </body>
 </html>
