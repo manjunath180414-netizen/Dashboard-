@@ -70,15 +70,16 @@ Welcome, <b id="agentName">Agent</b>
         <button class="copy-btn" onclick="copyNumber()">Copy & Start Call</button>
 
         <br><br>
+<select id="statusSelect">
+    <option value="New" selected>New</option>
+    <option value="Interested/follow up">Interested / Follow Up</option>
+    <option value="Not Received">Not Received</option>
+    <option value="Not Interested">Not Interested</option>
+    <option value="Switch Off">Switch Off</option>
+    <option value="Wrong / Invalid">Wrong / Invalid</option>
+    <option value="Joined">Joined</option>
+</select>
 
-        <select id="statusSelect">
-            <option value="Interested/follow up">Interested / Follow Up</option>
-            <option value="Not Interested">Not Interested</option>
-            <option value="Switch Off">Switch Off</option>
-            <option value="Wrong / Invalid">Wrong / Invalid</option>
-            <option value="Joined">Joined</option>
-            <option value="Notreceived">Not Received</option>
-        </select>
 
         <br><br>
 
@@ -225,6 +226,12 @@ function copyNumber(){
 }
 
 function submitStatus(){
+const status = document.getElementById("statusSelect").value;
+
+if(status === "New"){
+    alert("Please select a valid status before submitting.");
+    return;
+}
 
     if(!callStartTime){
         alert("You must copy number before updating status.");
@@ -267,6 +274,9 @@ function submitStatus(){
     if(status==="Switch Off"){
         updateData.followUpTime=Date.now()+(12*60*60*1000);
     }
+if(status === "Not Received"){
+    updateData.followUpTime = Date.now() + (6 * 60 * 60 * 1000); 
+}
 
     if(status==="Joined"){
         const amount=prompt("Enter amount:");
