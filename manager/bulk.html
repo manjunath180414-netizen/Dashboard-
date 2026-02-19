@@ -1,1 +1,151 @@
 
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Bulk Auto Assign</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-[#0B1120] text-white p-6">
+
+<h1 class="text-2xl font-bold mb-6">Bulk Assign Pending Leads</h1>
+
+<div id="pendingCount" class="mb-6 text-lg"></div>
+
+<h2 class="mb-3">Select Agents</h2>
+
+<div id="agentList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
+
+<button id="distributeBtn"
+  class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl shadow-lg">
+  Distribute Equally
+</button>
+
+<a href="manager.html"
+   class="fixed bottom-6 right-6 px-6 py-3 bg-gray-700 rounded-xl shadow-lg">
+   ← Dashboard
+</a>
+
+<script type="module">
+
+import { db } from "./services/firebase-init.js";
+import { loadAgents, getAllAgents } from "./services/userService.js";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  writeBatch,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const agentList = document.getElementById("agentList");
+const distributeBtn = document.getElementById("distributeBtn");
+const pendingCountDiv = document.getElementById("pendingCount");
+
+let pendingLeads = [];
+let selectedAgents = new Set();
+
+init();
+
+async function init() {
+
+  await loadAgents();
+  renderAgents();
+  await loadPendingLeads();
+}
+
+function renderAgents() {
+
+  const agents = getAllAgents();
+
+  for (let uid in agents) {
+
+    const box = document.createElement("div");
+    box.className =
+      "bg-[#111827] p-4 rounded-2xl shadow cursor-pointer hover:scale-105 transition";
+
+    box.innerHTML = `
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" value="${uid}" class="agentCheckbox" />
+        <span>${agents[uid]}</span>
+      </label>
+    `;
+
+    agentList.appendChild(box);
+  }
+
+  document.querySelectorAll(".agentCheckbox").forEach(cb => {
+    cb.addEventListener("change", (e) => {
+      if (e.target.checked)
+        selectedAgents.add(e.target.value);
+      else
+        selectedAgents.delete(e.target.value);
+    });
+  });
+}
+
+async function loadPendingLeads() {
+
+  const q = query(
+    collection(db, "leads"),
+    where("status", "==", "New"),
+    where("deleted", "==", false)
+  );
+
+  const snapshot = await getDocs(q);
+
+  pendingLeads = [];
+
+  snapshot.forEach(docSnap => {
+    pendingLeads.push(docSnap.id);
+  });
+
+  pendingCountDiv.innerHTML =
+    `Total Pending Leads: <strong>${pendingLeads.length}</strong>`;
+}
+
+distributeBtn.addEventListener("click", async () => {
+
+  if (selectedAgents.size === 0) {
+    alert("Select at least one agent");
+    return;
+  }
+
+  if (pendingLeads.length === 0) {
+    alert("No pending leads to distribute");
+    return;
+  }
+
+  const agentsArray = Array.from(selectedAgents);
+  const batch = writeBatch(db);
+
+  let agentIndex = 0;
+
+  for (let i = 0; i < pendingLeads.length; i++) {
+
+    const agentUID = agentsArray[agentIndex];
+
+    const leadRef = doc(db, "leads", pendingLeads[i]);
+
+    batch.update(leadRef, {
+      assignedTo: agentUID,
+      updatedAt: serverTimestamp()
+    });
+
+    agentIndex++;
+    if (agentIndex >= agentsArray.length)
+      agentIndex = 0;
+  }
+
+  await batch.commit();
+
+  alert("Leads distributed equally!");
+  location.reload();
+});
+
+</script>
+</body>
+</html>
