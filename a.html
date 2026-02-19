@@ -156,6 +156,37 @@ function loadNextLead(){
         document.getElementById("studentPhone").innerText=data.phone;
     });
 }
+function loadUpdatedLeads(){
+
+    const todayStart = new Date();
+    todayStart.setHours(0,0,0,0);
+
+    db.collection("leads")
+    .where("assignedTo","==",agentUID)
+    .where("updatedAt",">=",todayStart)
+    .orderBy("updatedAt","desc")
+    .onSnapshot(snapshot=>{
+
+        let html = "<h3>Today's Updated Leads</h3><table border='1' width='100%' cellpadding='5'>";
+        html += "<tr><th>Name</th><th>Phone</th><th>Status</th><th>Updated Time</th></tr>";
+
+        snapshot.forEach(doc=>{
+            const d=doc.data();
+            html += `
+            <tr>
+            <td>${d.studentName || ""}</td>
+            <td>${d.phone || ""}</td>
+            <td>${d.status || ""}</td>
+            <td>${d.updatedAt ? new Date(d.updatedAt.toDate()).toLocaleString() : ""}</td>
+            </tr>
+            `;
+        });
+
+        html += "</table>";
+
+        document.querySelector(".container").innerHTML += html;
+    });
+}
 
 function copyNumber(){
     if(!currentPhone){
@@ -229,6 +260,8 @@ function submitStatus(){
     .then(()=>{
         callStartTime=null;
         loadNextLead();
+        loadUpdatedLeads();
+
     });
 }
 
