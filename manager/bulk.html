@@ -91,9 +91,21 @@ async function loadPendingLeads() {
 
   const q = query(
     collection(db, "leads"),
-    where("status", "==", "New"),
+    where("assignedTo", "==", null),
     where("deleted", "==", false)
   );
+
+  const snapshot = await getDocs(q);
+
+  pendingLeads = [];
+
+  snapshot.forEach(docSnap => {
+    pendingLeads.push(docSnap.id);
+  });
+
+  pendingCountDiv.innerHTML =
+    `Total Unassigned Leads: <strong>${pendingLeads.length}</strong>`;
+}
 
   const snapshot = await getDocs(q);
 
