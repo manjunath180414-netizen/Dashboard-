@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Agent Backup Download</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+body{
+    font-family:Arial;
+    background:#f4f6f9;
+    padding:40px;
+    text-align:center;
+}
+button{
+    padding:12px 25px;
+    background:#2a5298;
+    color:white;
+    border:none;
+    border-radius:6px;
+    font-size:16px;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Download Your Lead Backup</h2>
+<br>
+<button onclick="downloadBackup()">Download Excel</button>
+<p id="status"></p>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let agentUID = null;
+
+auth.onAuthStateChanged(user=>{
+    if(!user){
+        window.location.href="index.html";
+    } else {
+        agentUID = user.uid;
+    }
+});
+
+function downloadBackup(){
+
+    document.getElementById("status").innerText="Preparing file...";
+
+    db.collection("leads")
+    .where("assignedTo","==",agentUID)
+    .where("deleted","==",false)
+    .get()
+    .then(snapshot=>{
+
+        let data = [];
+
+        snapshot.forEach(doc=>{
+            const lead = doc.data();
+
+            data.push({
+                "Name": lead.studentName,
+                "Phone": lead.phone,
+                "Status": lead.status,
+                "Follow Up Time": lead.followUpTime 
+                    ? new Date(lead.followUpTime).toLocaleString()
+                    : "",
+                "Amount": lead.amount || 0,
+                "Remarks": lead.remarks || ""
+            });
+        });
+
+        if(data.length === 0){
+            alert("No leads found");
+            return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+        XLSX.writeFile(workbook, "Agent_Lead_Backup.xlsx");
+
+        document.getElementById("status").innerText="Download Complete";
+
+    });
+
+}
+
+</script>
+
+</body>
+</html>
+
