@@ -238,29 +238,7 @@ function changeStatus(id, selectElement){
     db.collection("leads").doc(id).update(updateData);
 }
 
-    let updateData = {
-        status:newStatus,
-        updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
-        followUpTime:null
-    };
-
-    if(newStatus === "Switch Off"){
-        updateData.followUpTime = Date.now() + (12 * 60 * 60 * 1000);
-    }
-
-    if(newStatus === "Joined"){
-        const amount = prompt("Enter amount");
-        if(!amount){
-            selectElement.value = "New";
-            return;
-        }
-        updateData.amount = parseInt(amount);
-    }
-
-    db.collection("leads").doc(id).update(updateData);
-}
-
-
+    
 function saveFollowUp(){
 
     const date = document.getElementById("followDate").value;
