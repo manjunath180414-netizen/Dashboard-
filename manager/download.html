@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Download Agent Leads</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+
+<body class="bg-[#0B1120] text-white p-6">
+
+<h1 class="text-2xl font-bold mb-6">Download Agent Leads Backup</h1>
+
+<h2 class="mb-3 font-semibold">Select Agents</h2>
+
+<div id="agentList"
+     class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+</div>
+
+<button id="downloadBtn"
+  class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl shadow-lg">
+  Download Excel
+</button>
+
+<a href="manager.html"
+   class="fixed bottom-6 right-6 px-6 py-3 bg-gray-700 rounded-xl shadow-lg">
+   ← Dashboard
+</a>
+
+<script type="module">
+
+import { db } from "./services/firebase-init.js";
+import { loadAgents, getAllAgents } from "./services/userService.js";
+import {
+  collection,
+  query,
+  where,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const agentList = document.getElementById("agentList");
+const downloadBtn = document.getElementById("downloadBtn");
+
+let selectedAgents = new Set();
+let agentsMap = {};
+
+init();
+
+async function init() {
+  await loadAgents();
+  agentsMap = getAllAgents();
+  renderAgents();
+}
+
+function renderAgents() {
+
+  for (let uid in agentsMap) {
+
+    const box = document.createElement("div");
+    box.className =
+      "bg-[#111827] p-4 rounded-2xl shadow cursor-pointer hover:scale-105 transition";
+
+    box.innerHTML = `
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" value="${uid}" class="agentCheckbox" />
+        <span>${agentsMap[uid]}</span>
+      </label>
+    `;
+
+    agentList.appendChild(box);
+  }
+
+  document.querySelectorAll(".agentCheckbox").forEach(cb => {
+    cb.addEventListener("change", (e) => {
+      if (e.target.checked)
+        selectedAgents.add(e.target.value);
+      else
+        selectedAgents.delete(e.target.value);
+    });
+  });
+}
+
+downloadBtn.addEventListener("click", async () => {
+
+  if (selectedAgents.size === 0) {
+    alert("Select at least one agent");
+    return;
+  }
+
+  let allData = [];
+
+  for (let uid of selectedAgents) {
+
+    const q = query(
+      collection(db, "leads"),
+      where("assignedTo", "==", uid),
+      where("deleted", "==", false)
+    );
+
+    const snapshot = await getDocs(q);
+
+    snapshot.forEach(docSnap => {
+
+      const data = docSnap.data();
+
+      allData.push({
+        Agent: agentsMap[uid],
+        StudentName: data.studentName,
+        Phone: data.phone,
+        Status: data.status,
+        Amount: data.amount || 0,
+        FollowUpTime: data.followUpTime
+          ? data.followUpTime.toDate().toLocaleString()
+          : "",
+        Remarks: data.remarks || "",
+        CreatedAt: data.createdAt
+          ? data.createdAt.toDate().toLocaleString()
+          : ""
+      });
+    });
+  }
+
+  if (allData.length === 0) {
+    alert("No leads found");
+    return;
+  }
+
+  const worksheet = XLSX.utils.json_to_sheet(allData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+  const fileName = `Agent_Leads_Backup_${new Date().toISOString()}.xlsx`;
+
+  XLSX.writeFile(workbook, fileName);
+});
+
+</script>
+</body>
+</html>
