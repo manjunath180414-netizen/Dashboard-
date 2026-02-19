@@ -301,20 +301,31 @@ function loadAgentLeads(){
         const table = document.getElementById("leadTable");
         table.innerHTML="";
 
-        let total=0, interested=0, notInterested=0, call=0, switchOff=0;
+        let total=0, interestedFollowup=0, notInterested=0, switchOff=0, wrong=0, joined=0;
+
 
         snapshot.forEach(doc=>{
 
             const data = doc.data();
-            total++;
+            let rowColor = "";
 
-            if(data.status==="Interested") interested++;
-            if(data.status==="Not Interested") notInterested++;
-            if(data.status==="Follow Up") call++;
-            if(data.status==="Switch Off") switchOff++;
+if(data.status === "Wrong / Invalid"){
+    rowColor = "style='background:#ff3333;color:white;'";
+}
+else if(data.status === "Not Interested"){
+    rowColor = "style='background:#ffa64d;'";
+}
+
+            total++;
+if(data.status === "Interested/follow up") interestedFollowup++;
+if(data.status === "Not Interested") notInterested++;
+if(data.status === "Switch Off") switchOff++;
+if(data.status === "Wrong / Invalid") wrong++;
+if(data.status === "Joined") joined++;
 
             table.innerHTML += `
-                <tr>
+                <tr ${rowColor}>
+
                     <td>${data.studentName}</td>
                     <td onclick="copyNumber('${data.phone}')" style="cursor:pointer;color:#2a5298;">
                         ${data.phone}
@@ -369,12 +380,18 @@ function saveRemark(id,value){
 
     const statuses = [
         "New",
-        "Interested",
+        "Interested/follow up",
         "Not Interested",
-        "Follow Up",
         "Switch Off",
+        "Wrong / Invalid",
         "Joined"
     ];
+
+    return statuses.map(status => 
+        `<option value="${status}" ${status===current ? "selected" : ""}>${status}</option>`
+    ).join("");
+
+}
 
     return statuses.map(status => 
         `<option value="${status}" ${status===current ? "selected" : ""}>${status}</option>`
