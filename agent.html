@@ -347,11 +347,11 @@ if(data.status === "Joined") joined++;
             `;
         });
 
-        document.getElementById("totalLeads").innerText=total;
-        document.getElementById("totalInterested").innerText=interested;
-        document.getElementById("totalNotInterested").innerText=notInterested;
-        document.getElementById("totalCall").innerText=call;
-        document.getElementById("totalSwitch").innerText=switchOff;
+        document.getElementById("totalLeads").innerText = total;
+document.getElementById("totalInterested").innerText = interestedFollowup;
+document.getElementById("totalNotInterested").innerText = notInterested;
+document.getElementById("totalCall").innerText = 0; // temporary
+document.getElementById("totalSwitch").innerText = switchOff;
 
     });
 
@@ -393,15 +393,11 @@ function saveRemark(id,value){
 
 }
 
-    return statuses.map(status => 
-        `<option value="${status}" ${status===current ? "selected" : ""}>${status}</option>`
-    ).join("");
-
-}
 
 function changeStatus(id,newStatus){
 
-    if(newStatus === "Follow Up"){
+    if(newStatus === "Interested/follow up"){
+        currentLeadId = id;
         openFollowUpModal(id);
         return;
     }
@@ -411,6 +407,10 @@ function changeStatus(id,newStatus){
         updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
         followUpTime:null
     };
+
+    db.collection("leads").doc(id).update(updateData);
+}
+
 
     if(newStatus === "Switch Off"){
         const now = Date.now();
@@ -456,7 +456,7 @@ function saveFollowUp(){
     const fullDateTime = new Date(date + " " + time).getTime();
 
     db.collection("leads").doc(currentLeadId).update({
-        status:"Follow Up",
+        status:"Interested/follow up",
         followUpTime:fullDateTime,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp()
     });
