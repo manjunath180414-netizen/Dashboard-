@@ -60,29 +60,49 @@ Welcome, <b id="agentName">Agent</b>
 
 <div class="container">
 
-<div class="card" id="leadCard">
-<h3 id="studentName">Loading...</h3>
-<p id="studentPhone"></p>
+<div class="container">
 
-<button class="copy-btn" onclick="copyNumber()">Copy & Start Call</button>
+    <!-- Current Lead Card -->
+    <div class="card" id="leadCard">
+        <h3 id="studentName">Loading...</h3>
+        <p id="studentPhone"></p>
 
-<br><br>
+        <button class="copy-btn" onclick="copyNumber()">Copy & Start Call</button>
 
-<select id="statusSelect">
-<option value="Interested/follow up">Interested / Follow Up</option>
-<option value="Not Interested">Not Interested</option>
-<option value="Switch Off">Switch Off</option>
-<option value="Wrong / Invalid">Wrong / Invalid</option>
-<option value="Joined">Joined</option>
-<option value="Not Received">Notreceived</option>
+        <br><br>
 
-</select>
+        <select id="statusSelect">
+            <option value="Interested/follow up">Interested / Follow Up</option>
+            <option value="Not Interested">Not Interested</option>
+            <option value="Switch Off">Switch Off</option>
+            <option value="Wrong / Invalid">Wrong / Invalid</option>
+            <option value="Joined">Joined</option>
+            <option value="Notreceived">Not Received</option>
+        </select>
 
-<br><br>
+        <br><br>
 
-<button class="status-btn" onclick="submitStatus()">Update Status</button>
+        <button class="status-btn" onclick="submitStatus()">Update Status</button>
+    </div>
+
+    <!-- Updated Leads Section -->
+    <div style="margin-top:40px;">
+        <h3>Today's Updated Leads</h3>
+        <table width="100%" border="1" cellpadding="8" style="background:white;border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Updated Time</th>
+                </tr>
+            </thead>
+            <tbody id="updatedLeadsTable"></tbody>
+        </table>
+    </div>
 
 </div>
+
 
 </div>
 
