@@ -67,10 +67,14 @@ async function init() {
     }
 
     phoneMap[phone].push({
-      id: docSnap.id,
-      assignedTo: data.assignedTo,
-      studentName: data.studentName
-    });
+  id: docSnap.id,
+  assignedTo: data.assignedTo,
+  studentName: data.studentName,
+  status: data.status,
+  amount: data.amount || 0,
+  createdAt: data.createdAt
+});
+
   });
 
   let duplicateCount = 0;
@@ -120,12 +124,22 @@ async function init() {
           </button>
         </div>
 
-        <div class="mt-4 text-sm text-gray-400">
-          ${entries.map(e =>
-            `• ${e.studentName} (Lead ID: ${e.id})`
-          ).join("<br>")}
-        </div>
-      `;
+        <div class="mt-4 text-sm text-gray-300 space-y-2">
+  ${entries.map(e => `
+    <div class="bg-[#0B1120] p-3 rounded-lg">
+      <div><strong>Name:</strong> ${e.studentName}</div>
+      <div><strong>Status:</strong> ${e.status}</div>
+      <div><strong>Agent:</strong> ${
+        e.assignedTo ? agents[e.assignedTo] || "Unknown" : "Unassigned"
+      }</div>
+      <div><strong>Amount:</strong> ₹${e.amount}</div>
+      <div><strong>Lead ID:</strong> ${e.id}</div>
+      <div><strong>Created:</strong> ${
+        e.createdAt ? e.createdAt.toDate().toLocaleDateString() : "-"
+      }</div>
+    </div>
+  `).join("")}
+</div>
 
       resultsDiv.appendChild(card);
 
