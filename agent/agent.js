@@ -26,7 +26,7 @@ let selectedLead;
 onAuthStateChanged(auth, async (user) => {
 
   if (!user) {
-    window.location.href = "../index.html";
+    window.location.href = "index.html";
     return;
   }
 
@@ -36,7 +36,7 @@ onAuthStateChanged(auth, async (user) => {
 
   if (!snap.exists() || snap.data().role !== "agent") {
     alert("Access denied");
-    window.location.href = "../index.html";
+    window.location.href = "index.html";
     return;
   }
 
