@@ -1,1 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>HIS CRM – Agent Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-[#0B1120] text-white min-h-screen">
+
+<!-- Header -->
+<header class="flex justify-between items-center p-6 border-b border-gray-800">
+  <h1 class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+    HIS CRM – Agent Portal
+  </h1>
+  <div class="flex items-center gap-4">
+    <span id="agentName"></span>
+    <button id="logoutBtn"
+      class="bg-red-600 px-4 py-2 rounded-xl hover:bg-red-700">
+      Logout
+    </button>
+  </div>
+</header>
+
+<!-- KPI -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-6 p-6">
+  <div class="bg-[#111827] p-4 rounded-2xl">
+    <p>Total Leads</p>
+    <p id="kpiTotal" class="text-2xl font-bold">0</p>
+  </div>
+  <div class="bg-[#111827] p-4 rounded-2xl">
+    <p>Call Back</p>
+    <p id="kpiCallBack" class="text-2xl font-bold">0</p>
+  </div>
+  <div class="bg-[#111827] p-4 rounded-2xl">
+    <p>Follow Up</p>
+    <p id="kpiFollow" class="text-2xl font-bold">0</p>
+  </div>
+  <div class="bg-[#111827] p-4 rounded-2xl">
+    <p>Revenue</p>
+    <p id="kpiRevenue" class="text-2xl font-bold">₹0</p>
+  </div>
+</section>
+
+<!-- TABLE -->
+<section class="px-6 pb-10 overflow-x-auto">
+  <table class="min-w-full bg-[#111827] rounded-2xl">
+    <thead class="bg-gray-900 text-gray-400">
+      <tr>
+        <th class="p-4 text-left">Student</th>
+        <th class="p-4 text-left">Phone</th>
+        <th class="p-4 text-left">Status</th>
+        <th class="p-4 text-left">FollowUp</th>
+        <th class="p-4 text-left">Amount</th>
+        <th class="p-4 text-left">Action</th>
+      </tr>
+    </thead>
+    <tbody id="leadsTable"></tbody>
+  </table>
+</section>
+
+<!-- MODAL -->
+<div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+  <div class="bg-[#111827] p-6 rounded-2xl w-96">
+
+    <select id="statusInput" class="w-full mb-3 p-2 bg-gray-900 rounded">
+      <option>New</option>
+      <option>Contacted</option>
+      <option>Call Back</option>
+      <option>Follow Up</option>
+      <option>Joined</option>
+      <option>Not Interested</option>
+    </select>
+
+    <input id="followInput" type="datetime-local"
+      class="w-full mb-3 p-2 bg-gray-900 rounded">
+
+    <input id="amountInput" type="number"
+      placeholder="Amount"
+      class="w-full mb-3 p-2 bg-gray-900 rounded">
+
+    <textarea id="remarksInput"
+      placeholder="Remarks"
+      class="w-full mb-3 p-2 bg-gray-900 rounded"></textarea>
+
+    <div class="flex justify-end gap-3">
+      <button id="closeModal"
+        class="bg-gray-600 px-4 py-2 rounded-xl">Cancel</button>
+      <button id="saveLead"
+        class="bg-cyan-600 px-4 py-2 rounded-xl">Save</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module" src="./agent.js"></script>
+</body>
+</html>
 
