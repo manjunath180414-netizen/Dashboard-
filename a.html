@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>HIS Academy - Agent Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f4f6f9;
+}
+.header{
+    background:linear-gradient(90deg,#1e3c72,#2a5298);
+    color:white;
+    padding:15px 30px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+.container{ padding:30px; }
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:20px;
+    margin-bottom:30px;
+}
+.stat-card{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.05);
+    text-align:center;
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:10px;
+    overflow:hidden;
+}
+th,td{ padding:12px; }
+th{ background:#f1f3f6; }
+
+.remark-input{
+    width:100%;
+    padding:6px;
+}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+
+<body>
+
+<div class="header">
+    <h2>HIS Academy CRM</h2>
+    <div>
+        Welcome, <b id="agentName">Agent</b>
+        <button onclick="logout()">Logout</button>
+        <button onclick="window.location.href='load.html'">
+Download Backup
+</button>
+
+    </div>
+</div>
+
+<div class="container">
+
+<div class="stats">
+    <div class="stat-card">
+        <h4>Total Leads</h4>
+        <h2 id="totalLeads">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Pending</h4>
+        <h2 id="totalPending">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Interested / Follow Up</h4>
+        <h2 id="totalInterested">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Not Interested</h4>
+        <h2 id="totalNotInterested">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Switch Off</h4>
+        <h2 id="totalSwitch">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Wrong / Invalid</h4>
+        <h2 id="totalWrong">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Joined</h4>
+        <h2 id="totalJoined">0</h2>
+    </div>
+</div>
+
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Number</th>
+<th>Status</th>
+<th>Follow Up</th>
+<th>Remark</th>
+</tr>
+</thead>
+<tbody id="leadTable"></tbody>
+</table>
+
+</div>
+
+<!-- Follow Up Modal -->
+<div id="followUpModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;">
+<div style="background:white;padding:20px;border-radius:8px;width:300px;">
+<h3>Select Follow Up</h3>
+<input type="date" id="followDate" style="width:100%;margin-bottom:10px;">
+<input type="time" id="followTime" style="width:100%;margin-bottom:10px;">
+<button onclick="saveFollowUp()">Save</button>
+<button onclick="closeFollowUp()">Cancel</button>
+</div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let agentUID = null;
+let currentLeadId = null;
+let unsubscribeLeads = null;
+
+auth.onAuthStateChanged(user=>{
+    if(!user){
+        window.location.href="index.html";
+        return;
+    }
+
+    agentUID = user.uid;
+
+    db.collection("users").doc(agentUID).get().then(doc=>{
+        if(doc.exists){
+            document.getElementById("agentName").innerText = doc.data().name || "Agent";
+        }
+    });
+
+    loadAgentLeads();
+});
+
+function logout(){
+    auth.signOut().then(()=> window.location.href="index.html");
+}
+
+function loadAgentLeads(){
+
+    // 🔥 If listener already exists, remove it
+    if(unsubscribeLeads){
+        unsubscribeLeads();
+    }
+
+    unsubscribeLeads = db.collection("leads")
+    .where("assignedTo","==",agentUID)
+    .where("deleted","==",false)
+    .onSnapshot(snapshot=>{
+
+        const table = document.getElementById("leadTable");
+        table.innerHTML="";
+
+        let total=0, pending=0, interested=0, notInterested=0, switchOff=0, wrong=0, joined=0;
+
+        snapshot.forEach(doc=>{
+            const data = doc.data();
+
+            total++;
+
+            if(data.status === "New") pending++;
+            if(data.status === "Interested/follow up") interested++;
+            if(data.status === "Not Interested") notInterested++;
+            if(data.status === "Switch Off") switchOff++;
+            if(data.status === "Wrong / Invalid") wrong++;
+            if(data.status === "Joined") joined++;
+
+            let rowStyle="";
+            if(data.status==="Wrong / Invalid") rowStyle="style='background:#ff4d4d;color:white;'";
+            if(data.status==="Not Interested") rowStyle="style='background:#ffa64d;'";
+
+            table.innerHTML += `
+                <tr ${rowStyle}>
+                    <td>${data.studentName || "No Name"}</td>
+                    <td onclick="copyNumber('${data.phone}')" style="cursor:pointer;color:blue;">${data.phone}</td>
+                    <td>
+                        <select onchange="changeStatus('${doc.id}',this)">
+                            ${generateStatusOptions(data.status)}
+                        </select>
+                    </td>
+                    <td>${data.followUpTime ? new Date(data.followUpTime).toLocaleString() : "-"}</td>
+                    <td>
+                        <input class="remark-input"
+                        value="${data.remarks || ''}"
+                        onchange="saveRemark('${doc.id}',this.value)">
+                    </td>
+                </tr>`;
+        });
+
+        document.getElementById("totalLeads").innerText = total;
+        document.getElementById("totalPending").innerText = pending;
+        document.getElementById("totalInterested").innerText = interested;
+        document.getElementById("totalNotInterested").innerText = notInterested;
+        document.getElementById("totalSwitch").innerText = switchOff;
+        document.getElementById("totalWrong").innerText = wrong;
+        document.getElementById("totalJoined").innerText = joined;
+    });
+}
+
+function generateStatusOptions(current){
+    const statuses=[
+        "New",
+        "Interested/follow up",
+        "Not Interested",
+        "Switch Off",
+        "Wrong / Invalid",
+        "Joined"
+    ];
+    return statuses.map(s=>`<option ${s===current?"selected":""}>${s}</option>`).join("");
+}
+
+function changeStatus(id, selectElement){
+
+    const newStatus = selectElement.value;
+
+    if(newStatus === "Interested/follow up"){
+        currentLeadId = id;
+        window.currentSelectElement = selectElement;
+        document.getElementById("followUpModal").style.display = "flex";
+        return;
+    }
+
+    let updateData = {
+        status: newStatus,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        followUpTime: null
+    };
+
+    if(newStatus === "Switch Off"){
+        updateData.followUpTime = Date.now() + (12 * 60 * 60 * 1000);
+    }
+
+    if(newStatus === "Joined"){
+        const amount = prompt("Enter amount");
+        if(!amount){
+            selectElement.value = "New";
+            return;
+        }
+        updateData.amount = parseInt(amount);
+    }
+
+    db.collection("leads").doc(id).update(updateData);
+}
+
+    
+function saveFollowUp(){
+
+    const date = document.getElementById("followDate").value;
+    const time = document.getElementById("followTime").value;
+
+    if(!date || !time){
+        alert("Follow up date & time required");
+
+        if(window.currentSelectElement){
+            window.currentSelectElement.value = "New";
+        }
+
+        document.getElementById("followUpModal").style.display = "none";
+        return;
+    }
+
+    const full=new Date(date+" "+time).getTime();
+
+db.collection("leads").doc(currentLeadId).update({
+    status:"Interested/follow up",
+    followUpTime:full,
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+});
+
+closeFollowUp();
+}
+
+function closeFollowUp(){
+    document.getElementById("followUpModal").style.display="none";
+}
+
+function saveRemark(id,value){
+    db.collection("leads").doc(id).update({
+        remarks:value,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+function copyNumber(num){
+    navigator.clipboard.writeText(num);
+    alert("Number copied");
+}
+</script>
+</body>
+</html>
