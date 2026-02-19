@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Agent Spy Panel</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<style>
+body{font-family:Arial;background:#f4f6f9;padding:20px;}
+table{width:100%;background:white;border-collapse:collapse;}
+th,td{padding:10px;border-bottom:1px solid #ddd;text-align:center;}
+th{background:#eee;}
+.card{background:white;padding:15px;margin-bottom:20px;border-radius:8px;}
+</style>
+</head>
+
+<body>
+
+<h2>Agent Activity Monitoring</h2>
+
+<div id="agentSummary"></div>
+
+<h3>Call Logs</h3>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Lead</th>
+<th>Start</th>
+<th>End</th>
+<th>Spoken</th>
+<th>Real</th>
+</tr>
+</thead>
+<tbody id="logTable"></tbody>
+</table>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+loadSpyData();
+
+function loadSpyData(){
+
+    db.collection("callLogs").orderBy("numberCopiedTime","desc")
+    .onSnapshot(snapshot=>{
+
+        let table = document.getElementById("logTable");
+        table.innerHTML="";
+
+        let agentStats = {};
+
+        snapshot.forEach(doc=>{
+
+            const d = doc.data();
+
+            const start = new Date(d.numberCopiedTime.seconds*1000);
+            const end = new Date(d.statusUpdatedTime.seconds*1000);
+
+            const spoken = formatTime(d.spokenSeconds);
+            const real = formatTime(d.realTimeSeconds);
+
+            table.innerHTML += `
+            <tr>
+                <td>${d.agentId}</td>
+                <td>${d.leadId}</td>
+                <td>${start.toLocaleTimeString()}</td>
+                <td>${end.toLocaleTimeString()}</td>
+                <td>${spoken}</td>
+                <td>${real}</td>
+            </tr>`;
+
+            if(!agentStats[d.agentId]){
+                agentStats[d.agentId] = {
+                    calls:0,
+                    spoken:0,
+                    real:0
+                };
+            }
+
+            agentStats[d.agentId].calls++;
+            agentStats[d.agentId].spoken += d.spokenSeconds;
+            agentStats[d.agentId].real += d.realTimeSeconds;
+        });
+
+        renderSummary(agentStats);
+    });
+}
+
+function renderSummary(stats){
+
+    let container = document.getElementById("agentSummary");
+    container.innerHTML="";
+
+    for(let agent in stats){
+
+        const s = stats[agent];
+        const efficiency = ((s.spoken / s.real) * 100).toFixed(1);
+
+        container.innerHTML += `
+        <div class="card">
+            <b>Agent:</b> ${agent} <br>
+            Calls: ${s.calls} <br>
+            Talk Time: ${formatTime(s.spoken)} <br>
+            Real Call Time: ${formatTime(s.real)} <br>
+            Efficiency: ${efficiency}% 
+        </div>`;
+    }
+}
+
+function formatTime(sec){
+    const m = Math.floor(sec/60);
+    const s = sec%60;
+    return m+"m "+s+"s";
+}
+
+</script>
+
+</body>
+</html>
+
