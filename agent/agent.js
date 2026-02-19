@@ -1,7 +1,8 @@
 import { auth, db } from "./services/firebase-init.js";
 
 import {
-  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
@@ -22,14 +23,18 @@ let currentUser;
 let allLeads = [];
 let selectedLead;
 
-/* LOGIN */
-window.agentLogin = async function () {
-  const email = email.value;
-  const password = password.value;
-  await signInWithEmailAndPassword(auth, email, password);
+const provider = new GoogleAuthProvider();
+
+/* ================= GOOGLE LOGIN ================= */
+window.googleLogin = async function () {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    alert(error.message);
+  }
 };
 
-/* AUTH CHECK */
+/* ================= AUTH CHECK ================= */
 onAuthStateChanged(auth, async (user) => {
 
   if (!user) {
@@ -41,7 +46,12 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user;
 
   const snap = await getDoc(doc(db, "users", user.uid));
-  if (snap.data().role !== "agent") return alert("Not Agent");
+
+  if (!snap.exists() || snap.data().role !== "agent") {
+    alert("Access denied. Not an agent.");
+    await signOut(auth);
+    return;
+  }
 
   agentName.innerText = snap.data().name;
 
@@ -51,7 +61,7 @@ onAuthStateChanged(auth, async (user) => {
   listenLeads(user.uid);
 });
 
-/* LISTENER */
+/* ================= LISTEN LEADS ================= */
 function listenLeads(uid) {
 
   const q = query(
@@ -74,7 +84,7 @@ function listenLeads(uid) {
   });
 }
 
-/* KPI */
+/* ================= KPI ================= */
 function updateKPI() {
   kpiTotal.innerText = allLeads.length;
   kpiCallBack.innerText =
@@ -89,8 +99,9 @@ function updateKPI() {
   kpiRevenue.innerText = "₹" + revenue;
 }
 
-/* TABLE */
+/* ================= TABLE ================= */
 function render() {
+
   leadsTable.innerHTML = "";
 
   allLeads.forEach(lead => {
@@ -115,7 +126,7 @@ function render() {
   });
 }
 
-/* MODAL */
+/* ================= MODAL ================= */
 window.openModal = function(id) {
   selectedLead = allLeads.find(l => l.id === id);
   editModal.classList.remove("hidden");
@@ -124,7 +135,7 @@ window.openModal = function(id) {
 closeModal.onclick = () =>
   editModal.classList.add("hidden");
 
-/* SAVE */
+/* ================= SAVE ================= */
 saveLead.onclick = async () => {
 
   const newStatus = statusInput.value;
@@ -164,5 +175,5 @@ saveLead.onclick = async () => {
   editModal.classList.add("hidden");
 };
 
-/* LOGOUT */
+/* ================= LOGOUT ================= */
 logoutBtn.onclick = () => signOut(auth);
