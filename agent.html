@@ -170,7 +170,8 @@ function loadAgentLeads(){
                 <td>${data.studentName}</td>
                 <td onclick="copyNumber('${data.phone}')" style="cursor:pointer;color:blue;">${data.phone}</td>
                 <td>
-                    <select onchange="changeStatus('${doc.id}',this.value)">
+                    <select onchange="changeStatus('${doc.id}',this)">
+
                         ${generateStatusOptions(data.status)}
                     </select>
                 </td>
@@ -204,41 +205,71 @@ function generateStatusOptions(current){
     return statuses.map(s=>`<option ${s===current?"selected":""}>${s}</option>`).join("");
 }
 
-function changeStatus(id,newStatus){
+function changeStatus(id,selectElement){
 
-    if(newStatus==="Interested/follow up"){
-        currentLeadId=id;
-        document.getElementById("followUpModal").style.display="flex";
+    const newStatus = selectElement.value;
+
+    if(newStatus === "Interested/follow up"){
+        currentLeadId = id;
+
+        // Store select element reference
+        window.currentSelectElement = selectElement;
+
+        document.getElementById("followUpModal").style.display = "flex";
         return;
     }
 
-    let updateData={
+    let updateData = {
         status:newStatus,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
         followUpTime:null
     };
 
-    if(newStatus==="Switch Off"){
-        updateData.followUpTime=Date.now()+(12*60*60*1000);
+    if(newStatus === "Switch Off"){
+        updateData.followUpTime = Date.now() + (12 * 60 * 60 * 1000);
     }
 
-    if(newStatus==="Joined"){
-        const amount=prompt("Enter amount");
-        if(!amount) return;
-        updateData.amount=parseInt(amount);
+    if(newStatus === "Joined"){
+        const amount = prompt("Enter amount");
+        if(!amount){
+            selectElement.value = "New";
+            return;
+        }
+        updateData.amount = parseInt(amount);
     }
 
     db.collection("leads").doc(id).update(updateData);
 }
 
-function saveFollowUp(){
-    const date=document.getElementById("followDate").value;
-    const time=document.getElementById("followTime").value;
 
-    if(!date||!time){
+function saveFollowUp(){
+
+    const date = document.getElementById("followDate").value;
+    const time = document.getElementById("followTime").value;
+
+    if(!date || !time){
         alert("Follow up date & time required");
+
+        // revert dropdown back to New
+        if(window.currentSelectElement){
+            window.currentSelectElement.value = "New";
+        }
+
+        closeFollowUp();
         return;
     }
+
+    const full = new Date(date + " " + time).getTime();
+
+    db.collection("leads").doc(currentLeadId).update({
+        status:"Interested/follow up",
+        followUpTime:full,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    closeFollowUp();
+}
+
 
     const full=new Date(date+" "+time).getTime();
 
