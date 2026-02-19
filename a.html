@@ -54,7 +54,7 @@ button{
 <h2>HIS Academy - Calling Mode</h2>
 <div>
 Welcome, <b id="agentName">Agent</b>
-<button onclick="logout()">Logout<lbutton>
+<button onclick="logout()">Logout<button>
 </div>
 </div>
 
@@ -239,9 +239,7 @@ if(status === "New"){
         alert("You must copy number before updating status.");
         return;
     }
-
-    const status=document.getElementById("statusSelect").value;
-
+const spokenSeconds = (parseInt(spokenMin)*60) + parseInt(spokenSec);
     const spokenMin=prompt("Enter spoken minutes:");
     const spokenSec=prompt("Enter spoken seconds:");
 
