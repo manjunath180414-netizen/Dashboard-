@@ -286,8 +286,17 @@ auth.onAuthStateChanged(user=>{
     agentUID = user.uid;
 
     db.collection("users").doc(agentUID).get().then(doc=>{
-        document.getElementById("agentName").innerText = doc.data().name;
-    });
+    if(doc.exists){
+        console.log("User Data:", doc.data());
+        document.getElementById("agentName").innerText = doc.data().name || "Agent";
+    }else{
+        console.log("No user document found");
+        document.getElementById("agentName").innerText = "Agent";
+    }
+}).catch(error=>{
+    console.log("Error fetching user:", error);
+});
+
 
     loadAgentLeads();
 });
