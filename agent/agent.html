@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <title>HIS CRM – Agent Portal</title>
@@ -9,91 +9,117 @@
 
 <body class="bg-[#0B1120] text-white min-h-screen">
 
-  <!-- ================= LOGIN SECTION ================= -->
-  <div id="loginSection" class="flex items-center justify-center min-h-screen">
+<!-- ================= LOGIN ================= -->
+<div id="loginSection" class="flex items-center justify-center min-h-screen">
+  <div class="bg-[#111827] p-8 rounded-2xl w-96 shadow-xl">
+    <h2 class="text-2xl font-bold mb-6 text-center
+      bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+      Agent Login
+    </h2>
 
-    <div class="bg-[#111827] p-8 rounded-2xl w-96 shadow-xl">
-      <h2 class="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-        Agent Login
-      </h2>
+    <input id="email" type="email" placeholder="Email"
+      class="w-full mb-4 p-3 rounded-xl bg-gray-900">
 
-      <input id="email" type="email" placeholder="Email"
-        class="w-full mb-4 p-3 rounded-xl bg-gray-900">
+    <input id="password" type="password" placeholder="Password"
+      class="w-full mb-6 p-3 rounded-xl bg-gray-900">
 
-      <input id="password" type="password" placeholder="Password"
-        class="w-full mb-6 p-3 rounded-xl bg-gray-900">
+    <button onclick="agentLogin()"
+      class="w-full bg-cyan-600 hover:bg-cyan-700 p-3 rounded-xl">
+      Login
+    </button>
+  </div>
+</div>
 
-      <button onclick="agentLogin()"
-        class="w-full bg-cyan-600 hover:bg-cyan-700 p-3 rounded-xl">
-        Login
+<!-- ================= DASHBOARD ================= -->
+<div id="dashboardSection" class="hidden">
+
+  <!-- Header -->
+  <header class="flex justify-between items-center p-6 border-b border-gray-800">
+    <h1 class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+      HIS CRM – Agent Portal
+    </h1>
+    <div class="flex items-center gap-4">
+      <span id="agentName"></span>
+      <button id="logoutBtn"
+        class="bg-red-600 px-4 py-2 rounded-xl hover:bg-red-700">
+        Logout
       </button>
+    </div>
+  </header>
+
+  <!-- KPI -->
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-6 p-6">
+    <div class="bg-[#111827] p-4 rounded-2xl">
+      <p>Total</p>
+      <p id="kpiTotal" class="text-2xl font-bold">0</p>
+    </div>
+    <div class="bg-[#111827] p-4 rounded-2xl">
+      <p>Call Back</p>
+      <p id="kpiCallBack" class="text-2xl font-bold">0</p>
+    </div>
+    <div class="bg-[#111827] p-4 rounded-2xl">
+      <p>Follow Up</p>
+      <p id="kpiFollow" class="text-2xl font-bold">0</p>
+    </div>
+    <div class="bg-[#111827] p-4 rounded-2xl">
+      <p>Joined Revenue</p>
+      <p id="kpiRevenue" class="text-2xl font-bold">₹0</p>
+    </div>
+  </section>
+
+  <!-- TABLE -->
+  <section class="px-6 pb-10 overflow-x-auto">
+    <table class="min-w-full bg-[#111827] rounded-2xl">
+      <thead class="bg-gray-900 text-gray-400">
+        <tr>
+          <th class="p-4 text-left">Student</th>
+          <th class="p-4 text-left">Phone</th>
+          <th class="p-4 text-left">Status</th>
+          <th class="p-4 text-left">FollowUp</th>
+          <th class="p-4 text-left">Amount</th>
+          <th class="p-4 text-left">Action</th>
+        </tr>
+      </thead>
+      <tbody id="leadsTable"></tbody>
+    </table>
+  </section>
+
+</div>
+
+<!-- ================= MODAL ================= -->
+<div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+  <div class="bg-[#111827] p-6 rounded-2xl w-96">
+
+    <select id="statusInput" class="w-full mb-3 p-2 bg-gray-900 rounded">
+      <option>New</option>
+      <option>Contacted</option>
+      <option>Call Back</option>
+      <option>Follow Up</option>
+      <option>Joined</option>
+      <option>Not Interested</option>
+    </select>
+
+    <input id="followInput" type="datetime-local"
+      class="w-full mb-3 p-2 bg-gray-900 rounded">
+
+    <input id="amountInput" type="number"
+      placeholder="Amount"
+      class="w-full mb-3 p-2 bg-gray-900 rounded">
+
+    <textarea id="remarksInput"
+      placeholder="Remarks"
+      class="w-full mb-3 p-2 bg-gray-900 rounded"></textarea>
+
+    <div class="flex justify-end gap-3">
+      <button id="closeModal"
+        class="bg-gray-600 px-4 py-2 rounded-xl">Cancel</button>
+      <button id="saveLead"
+        class="bg-cyan-600 px-4 py-2 rounded-xl">Save</button>
     </div>
 
   </div>
+</div>
 
-
-  <!-- ================= DASHBOARD SECTION ================= -->
-  <div id="dashboardSection" class="hidden">
-
-    <!-- Header -->
-    <header class="flex justify-between items-center p-6 border-b border-gray-800">
-      <h1 class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-        HIS CRM – Agent Portal
-      </h1>
-
-      <div class="flex items-center gap-4">
-        <span id="agentName" class="text-gray-300"></span>
-        <button id="logoutBtn"
-          class="bg-red-600 px-4 py-2 rounded-xl hover:bg-red-700">
-          Logout
-        </button>
-      </div>
-    </header>
-
-    <!-- KPI Section -->
-    <section class="grid grid-cols-2 md:grid-cols-4 gap-6 p-6">
-      <div class="bg-[#111827] rounded-2xl p-4 shadow-lg">
-        <p class="text-gray-400 text-sm">My Leads</p>
-        <p id="kpiTotal" class="text-2xl font-bold mt-2">0</p>
-      </div>
-
-      <div class="bg-[#111827] rounded-2xl p-4 shadow-lg">
-        <p class="text-gray-400 text-sm">Follow Ups</p>
-        <p id="kpiFollow" class="text-2xl font-bold mt-2">0</p>
-      </div>
-
-      <div class="bg-[#111827] rounded-2xl p-4 shadow-lg">
-        <p class="text-gray-400 text-sm">Joined</p>
-        <p id="kpiJoined" class="text-2xl font-bold mt-2">0</p>
-      </div>
-
-      <div class="bg-[#111827] rounded-2xl p-4 shadow-lg">
-        <p class="text-gray-400 text-sm">My Revenue</p>
-        <p id="kpiRevenue" class="text-2xl font-bold mt-2">₹0</p>
-      </div>
-    </section>
-
-    <!-- Leads Table -->
-    <section class="px-6 pb-10 overflow-x-auto">
-      <table class="min-w-full bg-[#111827] rounded-2xl overflow-hidden">
-        <thead class="bg-gray-900 text-gray-400 text-sm">
-          <tr>
-            <th class="p-4 text-left">Student</th>
-            <th class="p-4 text-left">Phone</th>
-            <th class="p-4 text-left">Status</th>
-            <th class="p-4 text-left">Follow Up</th>
-            <th class="p-4 text-left">Amount</th>
-            <th class="p-4 text-left">Action</th>
-          </tr>
-        </thead>
-        <tbody id="leadsTable"></tbody>
-      </table>
-    </section>
-
-  </div>
-
-
-  <script type="module" src="./agent.js"></script>
-
+<script type="module" src="./agent.js"></script>
 </body>
 </html>
