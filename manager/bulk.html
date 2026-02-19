@@ -1,21 +1,24 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Bulk Auto Assign</title>
+  <title>Bulk Auto Assign - Unassigned Leads</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-[#0B1120] text-white p-6">
 
-<h1 class="text-2xl font-bold mb-6">Bulk Assign Pending Leads</h1>
+<h1 class="text-2xl font-bold mb-6">
+  Bulk Assign Unassigned Leads
+</h1>
 
-<div id="pendingCount" class="mb-6 text-lg"></div>
+<div id="leadCount" class="mb-6 text-lg"></div>
 
-<h2 class="mb-3">Select Agents</h2>
+<h2 class="mb-3 font-semibold">Select Agents</h2>
 
-<div id="agentList" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
+<div id="agentList"
+     class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+</div>
 
 <button id="distributeBtn"
   class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl shadow-lg">
@@ -43,9 +46,9 @@ import {
 
 const agentList = document.getElementById("agentList");
 const distributeBtn = document.getElementById("distributeBtn");
-const pendingCountDiv = document.getElementById("pendingCount");
+const leadCountDiv = document.getElementById("leadCount");
 
-let pendingLeads = [];
+let unassignedLeads = [];
 let selectedAgents = new Set();
 
 init();
@@ -54,12 +57,14 @@ async function init() {
 
   await loadAgents();
   renderAgents();
-  await loadPendingLeads();
+  await loadUnassignedLeads();
 }
 
 function renderAgents() {
 
   const agents = getAllAgents();
+
+  agentList.innerHTML = "";
 
   for (let uid in agents) {
 
@@ -87,7 +92,7 @@ function renderAgents() {
   });
 }
 
-async function loadPendingLeads() {
+async function loadUnassignedLeads() {
 
   const q = query(
     collection(db, "leads"),
@@ -97,26 +102,14 @@ async function loadPendingLeads() {
 
   const snapshot = await getDocs(q);
 
-  pendingLeads = [];
+  unassignedLeads = [];
 
   snapshot.forEach(docSnap => {
-    pendingLeads.push(docSnap.id);
+    unassignedLeads.push(docSnap.id);
   });
 
-  pendingCountDiv.innerHTML =
-    `Total Unassigned Leads: <strong>${pendingLeads.length}</strong>`;
-}
-
-  const snapshot = await getDocs(q);
-
-  pendingLeads = [];
-
-  snapshot.forEach(docSnap => {
-    pendingLeads.push(docSnap.id);
-  });
-
-  pendingCountDiv.innerHTML =
-    `Total Pending Leads: <strong>${pendingLeads.length}</strong>`;
+  leadCountDiv.innerHTML =
+    `Total Unassigned Leads: <strong>${unassignedLeads.length}</strong>`;
 }
 
 distributeBtn.addEventListener("click", async () => {
@@ -126,8 +119,8 @@ distributeBtn.addEventListener("click", async () => {
     return;
   }
 
-  if (pendingLeads.length === 0) {
-    alert("No pending leads to distribute");
+  if (unassignedLeads.length === 0) {
+    alert("No unassigned leads found");
     return;
   }
 
@@ -136,11 +129,11 @@ distributeBtn.addEventListener("click", async () => {
 
   let agentIndex = 0;
 
-  for (let i = 0; i < pendingLeads.length; i++) {
+  for (let i = 0; i < unassignedLeads.length; i++) {
 
     const agentUID = agentsArray[agentIndex];
 
-    const leadRef = doc(db, "leads", pendingLeads[i]);
+    const leadRef = doc(db, "leads", unassignedLeads[i]);
 
     batch.update(leadRef, {
       assignedTo: agentUID,
@@ -154,7 +147,7 @@ distributeBtn.addEventListener("click", async () => {
 
   await batch.commit();
 
-  alert("Leads distributed equally!");
+  alert("Unassigned leads distributed equally!");
   location.reload();
 });
 
