@@ -187,26 +187,26 @@ function loadUpdatedLeads(){
     .orderBy("updatedAt","desc")
     .onSnapshot(snapshot=>{
 
-        let html = "<h3>Today's Updated Leads</h3><table border='1' width='100%' cellpadding='5'>";
-        html += "<tr><th>Name</th><th>Phone</th><th>Status</th><th>Updated Time</th></tr>";
+        const tableBody = document.getElementById("updatedLeadsTable");
+        tableBody.innerHTML="";
 
         snapshot.forEach(doc=>{
             const d=doc.data();
-            html += `
-            <tr>
-            <td>${d.studentName || ""}</td>
-            <td>${d.phone || ""}</td>
-            <td>${d.status || ""}</td>
-            <td>${d.updatedAt ? new Date(d.updatedAt.toDate()).toLocaleString() : ""}</td>
-            </tr>
+
+            const row = `
+                <tr>
+                    <td>${d.studentName || ""}</td>
+                    <td>${d.phone || ""}</td>
+                    <td>${d.status || ""}</td>
+                    <td>${d.updatedAt ? new Date(d.updatedAt.toDate()).toLocaleString() : ""}</td>
+                </tr>
             `;
+
+            tableBody.innerHTML += row;
         });
-
-        html += "</table>";
-
-        document.querySelector(".container").innerHTML += html;
     });
 }
+
 
 function copyNumber(){
     if(!currentPhone){
