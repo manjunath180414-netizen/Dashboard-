@@ -54,7 +54,7 @@ button{
 <h2>HIS Academy - Calling Mode</h2>
 <div>
 Welcome, <b id="agentName">Agent</b>
-<button onclick="logout()">Logout</button>
+<button onclick="logout()">Logout</lbutton>
 </div>
 </div>
 
@@ -74,6 +74,8 @@ Welcome, <b id="agentName">Agent</b>
 <option value="Switch Off">Switch Off</option>
 <option value="Wrong / Invalid">Wrong / Invalid</option>
 <option value="Joined">Joined</option>
+<option value="Not Received">Notreceived</option>
+
 </select>
 
 <br><br>
@@ -89,7 +91,10 @@ Welcome, <b id="agentName">Agent</b>
 const firebaseConfig = {
   apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
   authDomain: "dashboard-bd51c.firebaseapp.com",
-  projectId: "dashboard-bd51c"
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
 };
 
 firebase.initializeApp(firebaseConfig);
