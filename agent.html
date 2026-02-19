@@ -205,19 +205,38 @@ function generateStatusOptions(current){
     return statuses.map(s=>`<option ${s===current?"selected":""}>${s}</option>`).join("");
 }
 
-function changeStatus(id,selectElement){
+function changeStatus(id, selectElement){
 
     const newStatus = selectElement.value;
 
     if(newStatus === "Interested/follow up"){
         currentLeadId = id;
-
-        // Store select element reference
         window.currentSelectElement = selectElement;
-
         document.getElementById("followUpModal").style.display = "flex";
         return;
     }
+
+    let updateData = {
+        status: newStatus,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        followUpTime: null
+    };
+
+    if(newStatus === "Switch Off"){
+        updateData.followUpTime = Date.now() + (12 * 60 * 60 * 1000);
+    }
+
+    if(newStatus === "Joined"){
+        const amount = prompt("Enter amount");
+        if(!amount){
+            selectElement.value = "New";
+            return;
+        }
+        updateData.amount = parseInt(amount);
+    }
+
+    db.collection("leads").doc(id).update(updateData);
+}
 
     let updateData = {
         status:newStatus,
@@ -250,14 +269,24 @@ function saveFollowUp(){
     if(!date || !time){
         alert("Follow up date & time required");
 
-        // revert dropdown back to New
         if(window.currentSelectElement){
             window.currentSelectElement.value = "New";
         }
 
-        closeFollowUp();
+        document.getElementById("followUpModal").style.display = "none";
         return;
     }
+
+    const fullTime = new Date(date + " " + time).getTime();
+
+    db.collection("leads").doc(currentLeadId).update({
+        status: "Interested/follow up",
+        followUpTime: fullTime,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    document.getElementById("followUpModal").style.display = "none";
+}
 
     const full = new Date(date + " " + time).getTime();
 
