@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Data Integrity Check</title>
+  <title>Duplicate & Conflict Check</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -12,7 +12,7 @@
 
 <div id="summary" class="mb-6 text-lg"></div>
 
-<div id="results" class="space-y-4"></div>
+<div id="results" class="space-y-6"></div>
 
 <a href="manager.html"
    class="fixed bottom-6 right-6 px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl shadow-lg">
@@ -27,7 +27,11 @@ import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  doc,
+  updateDoc,
+  writeBatch,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const resultsDiv = document.getElementById("results");
@@ -50,9 +54,9 @@ async function init() {
   const phoneMap = {};
   let totalLeads = 0;
 
-  snapshot.forEach(doc => {
+  snapshot.forEach(docSnap => {
 
-    const data = doc.data();
+    const data = docSnap.data();
     totalLeads++;
 
     const phone = data.phone?.trim();
@@ -63,7 +67,7 @@ async function init() {
     }
 
     phoneMap[phone].push({
-      id: doc.id,
+      id: docSnap.id,
       assignedTo: data.assignedTo,
       studentName: data.studentName
     });
@@ -73,24 +77,50 @@ async function init() {
 
   for (let phone in phoneMap) {
 
-    if (phoneMap[phone].length > 1) {
+    const entries = phoneMap[phone];
+
+    if (entries.length > 1) {
 
       duplicateCount++;
 
       const card = document.createElement("div");
       card.className = "bg-[#111827] p-6 rounded-2xl shadow-lg";
 
-      const entries = phoneMap[phone];
-
-      let agentNames = entries.map(e =>
+      const agentNames = entries.map(e =>
         e.assignedTo ? agents[e.assignedTo] || "Unknown" : "Unassigned"
       );
 
       card.innerHTML = `
-        <h2 class="text-lg font-bold text-red-400">Duplicate: ${phone}</h2>
-        <p>Total Entries: ${entries.length}</p>
+        <h2 class="text-lg font-bold text-red-400">
+          Duplicate Number: ${phone}
+        </h2>
+
+        <p class="mt-2">Total Entries: ${entries.length}</p>
         <p>Agents: ${[...new Set(agentNames)].join(", ")}</p>
-        <div class="mt-3 text-sm text-gray-400">
+
+        <div class="mt-4">
+          <label class="text-sm text-gray-400">
+            Select Correct Agent
+          </label>
+          <select class="agentFixSelect bg-[#0B1120] p-2 rounded mt-1 w-full">
+            <option value="">Choose Agent</option>
+            ${Object.entries(agents).map(([uid, name]) =>
+              `<option value="${uid}">${name}</option>`
+            ).join("")}
+          </select>
+        </div>
+
+        <div class="flex gap-3 mt-4">
+          <button class="reassignBtn bg-cyan-600 px-4 py-2 rounded">
+            Reassign All
+          </button>
+
+          <button class="deleteExtrasBtn bg-red-600 px-4 py-2 rounded">
+            Keep First Only
+          </button>
+        </div>
+
+        <div class="mt-4 text-sm text-gray-400">
           ${entries.map(e =>
             `• ${e.studentName} (Lead ID: ${e.id})`
           ).join("<br>")}
@@ -98,6 +128,56 @@ async function init() {
       `;
 
       resultsDiv.appendChild(card);
+
+      // ===== Correction Logic =====
+
+      const select = card.querySelector(".agentFixSelect");
+      const reassignBtn = card.querySelector(".reassignBtn");
+      const deleteBtn = card.querySelector(".deleteExtrasBtn");
+
+      reassignBtn.onclick = async () => {
+
+        const selectedAgent = select.value;
+
+        if (!selectedAgent) {
+          alert("Select an agent first");
+          return;
+        }
+
+        const batch = writeBatch(db);
+
+        entries.forEach(e => {
+          const ref = doc(db, "leads", e.id);
+          batch.update(ref, {
+            assignedTo: selectedAgent,
+            updatedAt: serverTimestamp()
+          });
+        });
+
+        await batch.commit();
+        alert("All duplicates reassigned successfully");
+        location.reload();
+      };
+
+      deleteBtn.onclick = async () => {
+
+        if (!confirm("Keep first entry and mark others deleted?"))
+          return;
+
+        const batch = writeBatch(db);
+
+        entries.slice(1).forEach(e => {
+          const ref = doc(db, "leads", e.id);
+          batch.update(ref, {
+            deleted: true,
+            updatedAt: serverTimestamp()
+          });
+        });
+
+        await batch.commit();
+        alert("Duplicate entries marked deleted");
+        location.reload();
+      };
     }
   }
 
