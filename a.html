@@ -375,30 +375,43 @@ function copyNumber(num, leadId){
 }
     function loadNextLead(){
 
+    const now = Date.now();
+
+    // 1️⃣ First check follow-up due leads
     db.collection("leads")
     .where("assignedTo","==",agentUID)
     .where("deleted","==",false)
-    .where("status","==","New")
+    .where("status","==","Interested/follow up")
+    .where("followUpTime","<=",now)
     .limit(1)
     .get()
     .then(snapshot=>{
 
-        if(snapshot.empty){
-            document.getElementById("singleLeadCard").style.display="none";
-            document.getElementById("noLeadMessage").style.display="block";
+        if(!snapshot.empty){
+            showLead(snapshot.docs[0]);
             return;
         }
 
-        const doc = snapshot.docs[0];
-        const data = doc.data();
+        // 2️⃣ If no follow-up due → load New lead
+        db.collection("leads")
+        .where("assignedTo","==",agentUID)
+        .where("deleted","==",false)
+        .where("status","==","New")
+        .limit(1)
+        .get()
+        .then(newSnapshot=>{
 
-        currentLeadId = doc.id;
+            if(newSnapshot.empty){
+                document.getElementById("singleLeadCard").style.display="none";
+                document.getElementById("noLeadMessage").style.display="block";
+                return;
+            }
 
-        document.getElementById("leadName").innerText = data.studentName || "No Name";
-        document.getElementById("leadPhone").innerText = data.phone;
-        document.getElementById("leadPhone").onclick = ()=>{
-            copyNumber(data.phone);
-        };
+            showLead(newSnapshot.docs[0]);
+        });
+
+    });
+}
 
         document.getElementById("leadRemark").value = data.remarks || "";
 
