@@ -108,19 +108,27 @@ Download Backup
     </div>
 </div>
 
+<div id="singleLeadCard" style="background:white;padding:20px;border-radius:10px;display:none;">
+    <h3 id="leadName"></h3>
+    <p><b>Number:</b> 
+        <span id="leadPhone" style="color:blue;cursor:pointer;"></span>
+    </p>
 
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Number</th>
-<th>Status</th>
-<th>Follow Up</th>
-<th>Remark</th>
-</tr>
-</thead>
-<tbody id="leadTable"></tbody>
-</table>
+    <p>
+        <b>Status:</b>
+        <select id="leadStatus"></select>
+    </p>
+
+    <p>
+        <b>Remark:</b>
+        <input id="leadRemark" style="width:100%;padding:6px;">
+    </p>
+
+    <button onclick="submitStatus()">Update & Next</button>
+</div>
+
+<h3 id="noLeadMessage" style="display:none;">No more leads available</h3>
+
 
 </div>
 
@@ -152,6 +160,8 @@ const db = firebase.firestore();
 let agentUID = null;
 let currentLeadId = null;
 let unsubscribeLeads = null;
+let currentCallStartTime = null;
+let lastStatusUpdateTime = null;
 
 auth.onAuthStateChanged(user=>{
     if(!user){
@@ -167,7 +177,8 @@ auth.onAuthStateChanged(user=>{
         }
     });
 
-    loadAgentLeads();
+    loadNextLead();
+
 });
 
 function logout(){
@@ -210,7 +221,8 @@ function loadAgentLeads(){
             table.innerHTML += `
                 <tr ${rowStyle}>
                     <td>${data.studentName || "No Name"}</td>
-                    <td onclick="copyNumber('${data.phone}')" style="cursor:pointer;color:blue;">${data.phone}</td>
+                    <td onclick="copyNumber('${data.phone}','${doc.id}')"
+
                     <td>
                         <select onchange="changeStatus('${doc.id}',this)">
                             ${generateStatusOptions(data.status)}
@@ -276,6 +288,38 @@ function changeStatus(id, selectElement){
         }
         updateData.amount = parseInt(amount);
     }
+if(currentCallStartTime){
+
+    const spokenMin = prompt("Enter spoken minutes");
+    const spokenSec = prompt("Enter spoken seconds");
+
+    if(spokenMin === null || spokenSec === null){
+        selectElement.value = "New";
+        return;
+    }
+
+    const spokenSeconds = (parseInt(spokenMin)*60) + parseInt(spokenSec);
+
+    const callEndTime = new Date();
+    const realTimeSeconds = Math.floor((callEndTime - currentCallStartTime)/1000);
+
+    if(spokenSeconds > realTimeSeconds){
+        alert("Spoken time cannot be more than real time");
+        selectElement.value = "New";
+        return;
+    }
+
+    db.collection("callLogs").add({
+        agentId: agentUID,
+        leadId: id,
+        numberCopiedTime: currentCallStartTime,
+        statusUpdatedTime: firebase.firestore.FieldValue.serverTimestamp(),
+        spokenSeconds: spokenSeconds,
+        realTimeSeconds: realTimeSeconds
+    });
+
+    lastStatusUpdateTime = new Date();
+}
 
     db.collection("leads").doc(id).update(updateData);
 }
@@ -319,10 +363,103 @@ function saveRemark(id,value){
     });
 }
 
-function copyNumber(num){
+function copyNumber(num, leadId){
     navigator.clipboard.writeText(num);
+
+    currentCallStartTime = new Date(); // Call started
     alert("Number copied");
+
+    db.collection("users").doc(agentUID).update({
+        lastActive: firebase.firestore.FieldValue.serverTimestamp()
+    });
 }
+    function loadNextLead(){
+
+    db.collection("leads")
+    .where("assignedTo","==",agentUID)
+    .where("deleted","==",false)
+    .where("status","==","New")
+    .limit(1)
+    .get()
+    .then(snapshot=>{
+
+        if(snapshot.empty){
+            document.getElementById("singleLeadCard").style.display="none";
+            document.getElementById("noLeadMessage").style.display="block";
+            return;
+        }
+
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+
+        currentLeadId = doc.id;
+
+        document.getElementById("leadName").innerText = data.studentName || "No Name";
+        document.getElementById("leadPhone").innerText = data.phone;
+        document.getElementById("leadPhone").onclick = ()=>{
+            copyNumber(data.phone);
+        };
+
+        document.getElementById("leadRemark").value = data.remarks || "";
+
+        document.getElementById("leadStatus").innerHTML = generateStatusOptions("New");
+
+        document.getElementById("singleLeadCard").style.display="block";
+        document.getElementById("noLeadMessage").style.display="none";
+    });
+}
+function submitStatus(){
+
+    const selectedStatus = document.getElementById("leadStatus").value;
+    const remark = document.getElementById("leadRemark").value;
+
+    if(!currentLeadId){
+        alert("No lead selected");
+        return;
+    }
+
+    if(!currentCallStartTime){
+        alert("Please copy number before updating status");
+        return;
+    }
+
+    const spokenMin = prompt("Enter spoken minutes");
+    const spokenSec = prompt("Enter spoken seconds");
+
+    if(spokenMin === null || spokenSec === null){
+        return;
+    }
+
+    const spokenSeconds = (parseInt(spokenMin)*60) + parseInt(spokenSec);
+
+    const callEndTime = new Date();
+    const realTimeSeconds = Math.floor((callEndTime - currentCallStartTime)/1000);
+
+    if(spokenSeconds > realTimeSeconds){
+        alert("Spoken time cannot be more than real time");
+        return;
+    }
+
+    db.collection("callLogs").add({
+        agentId: agentUID,
+        leadId: currentLeadId,
+        numberCopiedTime: currentCallStartTime,
+        statusUpdatedTime: firebase.firestore.FieldValue.serverTimestamp(),
+        spokenSeconds: spokenSeconds,
+        realTimeSeconds: realTimeSeconds
+    });
+
+    db.collection("leads").doc(currentLeadId).update({
+        status: selectedStatus,
+        remarks: remark,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(()=>{
+        currentCallStartTime = null;
+        loadNextLead(); // 🔥 AUTO NEXT
+    });
+}
+
+
 </script>
 </body>
 </html>
