@@ -170,63 +170,66 @@ function logout(){
 }
 
 function loadAgentLeads(){
-    db.collection("leads")
+
+    // 🔥 If listener already exists, remove it
+    if(unsubscribeLeads){
+        unsubscribeLeads();
+    }
+
+    unsubscribeLeads = db.collection("leads")
     .where("assignedTo","==",agentUID)
     .where("deleted","==",false)
     .onSnapshot(snapshot=>{
 
         const table = document.getElementById("leadTable");
         table.innerHTML="";
-let total=0, pending=0, interested=0, notInterested=0, switchOff=0, wrong=0, joined=0;
 
+        let total=0, pending=0, interested=0, notInterested=0, switchOff=0, wrong=0, joined=0;
 
         snapshot.forEach(doc=>{
             const data = doc.data();
-            total++;
 
             total++;
 
-if(data.status === "New") pending++;
-if(data.status === "Interested/follow up") interested++;
-if(data.status === "Not Interested") notInterested++;
-if(data.status === "Switch Off") switchOff++;
-if(data.status === "Wrong / Invalid") wrong++;
-if(data.status === "Joined") joined++;
-
+            if(data.status === "New") pending++;
+            if(data.status === "Interested/follow up") interested++;
+            if(data.status === "Not Interested") notInterested++;
+            if(data.status === "Switch Off") switchOff++;
+            if(data.status === "Wrong / Invalid") wrong++;
+            if(data.status === "Joined") joined++;
 
             let rowStyle="";
             if(data.status==="Wrong / Invalid") rowStyle="style='background:#ff4d4d;color:white;'";
             if(data.status==="Not Interested") rowStyle="style='background:#ffa64d;'";
 
-            table.innerHTML+=`
-            <tr ${rowStyle}>
-                <td>${data.studentName}</td>
-                <td onclick="copyNumber('${data.phone}')" style="cursor:pointer;color:blue;">${data.phone}</td>
-                <td>
-                    <select onchange="changeStatus('${doc.id}',this)">
-
-                        ${generateStatusOptions(data.status)}
-                    </select>
-                </td>
-                <td>${data.followUpTime ? new Date(data.followUpTime).toLocaleString() : "-"}</td>
-                <td>
-                    <input class="remark-input"
-                    value="${data.remarks || ''}"
-                    onchange="saveRemark('${doc.id}',this.value)">
-                </td>
-            </tr>`;
+            table.innerHTML += `
+                <tr ${rowStyle}>
+                    <td>${data.studentName || "No Name"}</td>
+                    <td onclick="copyNumber('${data.phone}')" style="cursor:pointer;color:blue;">${data.phone}</td>
+                    <td>
+                        <select onchange="changeStatus('${doc.id}',this)">
+                            ${generateStatusOptions(data.status)}
+                        </select>
+                    </td>
+                    <td>${data.followUpTime ? new Date(data.followUpTime).toLocaleString() : "-"}</td>
+                    <td>
+                        <input class="remark-input"
+                        value="${data.remarks || ''}"
+                        onchange="saveRemark('${doc.id}',this.value)">
+                    </td>
+                </tr>`;
         });
 
         document.getElementById("totalLeads").innerText = total;
-document.getElementById("totalPending").innerText = pending;
-document.getElementById("totalInterested").innerText = interested;
-document.getElementById("totalNotInterested").innerText = notInterested;
-document.getElementById("totalSwitch").innerText = switchOff;
-document.getElementById("totalWrong").innerText = wrong;
-document.getElementById("totalJoined").innerText = joined;
-});  // ← YES it ends with });
-
+        document.getElementById("totalPending").innerText = pending;
+        document.getElementById("totalInterested").innerText = interested;
+        document.getElementById("totalNotInterested").innerText = notInterested;
+        document.getElementById("totalSwitch").innerText = switchOff;
+        document.getElementById("totalWrong").innerText = wrong;
+        document.getElementById("totalJoined").innerText = joined;
+    });
 }
+
 function generateStatusOptions(current){
     const statuses=[
         "New",
