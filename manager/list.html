@@ -43,24 +43,16 @@
      class="fixed bottom-6 right-6 px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl shadow-lg">
      ← Dashboard
   </a>
-
 <script type="module">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-// 🔥 YOUR FIREBASE CONFIG
-const firebaseConfig = {
-  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
-  authDomain: "dashboard-bd51c.firebaseapp.com",
-  projectId: "dashboard-bd51c",
-  storageBucket: "dashboard-bd51c.firebasestorage.app",
-  messagingSenderId: "689809644516",
-  appId: "1:689809644516:web:75d6051b300983afb545f1"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+import { db } from "./services/firebase-init.js";
+import { loadAgents, getAllAgents } from "./services/userService.js";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const agentSelect = document.getElementById("agentSelect");
 const statusBoxes = document.getElementById("statusBoxes");
@@ -69,23 +61,24 @@ const tableContainer = document.getElementById("tableContainer");
 
 let agentLeads = [];
 
-// Load agents
-loadAgents();
+init();
 
-async function loadAgents() {
-  const { getDocs } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js");
+async function init() {
+  await loadAgents();
+  renderAgents();
+}
 
-  const snapshot = await getDocs(collection(db, "users"));
+function renderAgents() {
+  const agents = getAllAgents();
 
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    if (data.role === "agent") {
-      const option = document.createElement("option");
-      option.value = doc.id;
-      option.textContent = data.name;
-      agentSelect.appendChild(option);
-    }
-  });
+  agentSelect.innerHTML = '<option value="">Select Agent</option>';
+
+  for (let uid in agents) {
+    const option = document.createElement("option");
+    option.value = uid;
+    option.textContent = agents[uid];
+    agentSelect.appendChild(option);
+  }
 }
 
 agentSelect.addEventListener("change", () => {
@@ -152,25 +145,18 @@ function filterTable(type) {
 
   if (type === "Assigned")
     filtered = agentLeads;
-
   else if (type === "Pending")
     filtered = agentLeads.filter(l => l.status === "New");
-
   else if (type === "Called")
     filtered = agentLeads.filter(l => l.status !== "New");
-
   else if (type === "Interested / Follow Up")
     filtered = agentLeads.filter(l => l.status === "Follow Up");
-
   else if (type === "Not Interested")
     filtered = agentLeads.filter(l => l.status === "Not Interested");
-
   else if (type === "Switch Off / Not Received")
     filtered = agentLeads.filter(l => l.status === "Not Received / Switch Off");
-
   else if (type === "Joined")
     filtered = agentLeads.filter(l => l.status === "Joined");
-
   else if (type === "Wrong / Invalid")
     filtered = agentLeads.filter(l => l.status === "Invalid / Wrong Number");
 
@@ -189,6 +175,8 @@ function filterTable(type) {
 }
 
 </script>
+
+  
 </body>
 </html>
 
