@@ -1,5 +1,4 @@
 import { auth, db } from "./services/firebase-init.js";
-
 import {
   onAuthStateChanged,
   signOut
@@ -19,7 +18,7 @@ import {
 
 let currentUser;
 let allLeads = [];
-let selectedLead;
+let selectedLead = null;
 
 /* ================= AUTH GUARD ================= */
 
@@ -32,22 +31,22 @@ onAuthStateChanged(auth, async (user) => {
 
   currentUser = user;
 
-  const snap = await getDoc(doc(db, "users", user.uid));
+  const userSnap = await getDoc(doc(db, "users", user.uid));
 
-  if (!snap.exists() || snap.data().role !== "agent") {
+  if (!userSnap.exists() || userSnap.data().role !== "agent") {
     alert("Access denied");
     window.location.href = "index.html";
     return;
   }
 
-  agentName.innerText = snap.data().name;
+  document.getElementById("agentName").innerText = userSnap.data().name;
 
-  listenLeads(user.uid);
+  loadLeads(user.uid);
 });
 
-/* ================= LISTEN LEADS ================= */
+/* ================= LOAD LEADS ================= */
 
-function listenLeads(uid) {
+function loadLeads(uid) {
 
   const q = query(
     collection(db, "leads"),
@@ -64,52 +63,55 @@ function listenLeads(uid) {
       allLeads.push({ id: docSnap.id, ...data });
     });
 
-    updateKPI();
-    render();
+    updateKPIs();
+    renderTable();
   });
 }
 
 /* ================= KPI ================= */
 
-function updateKPI() {
+function updateKPIs() {
 
-  kpiTotal.innerText = allLeads.length;
+  document.getElementById("kpiTotal").innerText = allLeads.length;
 
-  kpiCallBack.innerText =
-    allLeads.filter(l => l.status === "Call Back").length;
-
-  kpiFollow.innerText =
+  document.getElementById("kpiFollow").innerText =
     allLeads.filter(l => l.status === "Follow Up").length;
+
+  document.getElementById("kpiCallBack").innerText =
+    allLeads.filter(l => l.status === "Call Back").length;
 
   const revenue = allLeads
     .filter(l => l.status === "Joined")
     .reduce((sum, l) => sum + (Number(l.amount) || 0), 0);
 
-  kpiRevenue.innerText = "₹" + revenue;
+  document.getElementById("kpiRevenue").innerText = "₹" + revenue;
 }
 
 /* ================= TABLE ================= */
 
-function render() {
+function renderTable() {
 
-  leadsTable.innerHTML = "";
+  const table = document.getElementById("leadsTable");
+  table.innerHTML = "";
 
   allLeads.forEach(lead => {
 
-    const follow = lead.followUpTime
+    const followUp = lead.followUpTime
       ? new Date(lead.followUpTime.seconds * 1000).toLocaleString()
       : "-";
 
-    leadsTable.innerHTML += `
+    table.innerHTML += `
       <tr class="border-b border-gray-800">
         <td class="p-4">${lead.studentName}</td>
         <td class="p-4">${lead.phone}</td>
         <td class="p-4">${lead.status}</td>
-        <td class="p-4">${follow}</td>
+        <td class="p-4">${followUp}</td>
         <td class="p-4">₹${lead.amount || 0}</td>
         <td class="p-4">
           <button onclick="openModal('${lead.id}')"
-          class="bg-purple-600 px-3 py-1 rounded-xl">Edit</button>
+            class="bg-purple-600 px-3 py-1 rounded-xl">
+            Edit
+          </button>
         </td>
       </tr>
     `;
@@ -120,37 +122,39 @@ function render() {
 
 window.openModal = function(id) {
   selectedLead = allLeads.find(l => l.id === id);
-  editModal.classList.remove("hidden");
+  document.getElementById("editModal").classList.remove("hidden");
 };
 
-closeModal.onclick = () =>
-  editModal.classList.add("hidden");
+document.getElementById("closeModal").onclick = () =>
+  document.getElementById("editModal").classList.add("hidden");
 
 /* ================= SAVE ================= */
 
-saveLead.onclick = async () => {
+document.getElementById("saveLead").onclick = async () => {
 
-  const newStatus = statusInput.value;
-  const followTime = followInput.value;
-  const amount = amountInput.value;
-  const remarks = remarksInput.value;
+  const newStatus = document.getElementById("statusInput").value;
+  const followTime = document.getElementById("followInput").value;
+  const amount = document.getElementById("amountInput").value;
+  const remarks = document.getElementById("remarksInput").value;
 
-  if ((newStatus === "Call Back" || newStatus === "Follow Up") && !followTime)
-    return alert("Follow-up time required");
+  if ((newStatus === "Follow Up" || newStatus === "Call Back") && !followTime)
+    return alert("Follow up time required");
 
   if (newStatus === "Joined" && !amount)
     return alert("Amount required");
 
-  await updateDoc(doc(db, "leads", selectedLead.id), {
+  const updates = {
     status: newStatus,
-    followUpTime:
-      (newStatus === "Call Back" || newStatus === "Follow Up")
-      ? new Date(followTime)
-      : null,
-    amount: newStatus === "Joined" ? Number(amount) : 0,
     remarks: remarks,
+    followUpTime:
+      (newStatus === "Follow Up" || newStatus === "Call Back")
+        ? new Date(followTime)
+        : null,
+    amount: newStatus === "Joined" ? Number(amount) : 0,
     updatedAt: serverTimestamp()
-  });
+  };
+
+  await updateDoc(doc(db, "leads", selectedLead.id), updates);
 
   await addDoc(
     collection(db, "leads", selectedLead.id, "history"),
@@ -164,13 +168,9 @@ saveLead.onclick = async () => {
     }
   );
 
-  editModal.classList.add("hidden");
+  document.getElementById("editModal").classList.add("hidden");
 };
 
 /* ================= LOGOUT ================= */
 
-logoutBtn.onclick = async () => {
-  await signOut(auth);
-  window.location.href = "../index.html";
-};
-
+document.getElementById("logoutBtn").onclick = () => signOut(auth);
