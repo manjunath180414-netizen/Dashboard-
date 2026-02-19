@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Agent Performance List</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-[#0B1120] text-white p-6">
+
+  <h1 class="text-2xl font-bold mb-6">Agent Performance List</h1>
+
+  <!-- Agent Select -->
+  <div class="mb-6">
+    <select id="agentSelect"
+      class="bg-[#111827] border border-gray-700 p-3 rounded-lg w-64">
+      <option value="">Select Agent</option>
+    </select>
+  </div>
+
+  <!-- Status Boxes -->
+  <div id="statusBoxes"
+       class="grid grid-cols-2 md:grid-cols-4 gap-4 hidden">
+  </div>
+
+  <!-- Leads Table -->
+  <div id="tableContainer" class="mt-8 hidden">
+    <table class="w-full border border-gray-700 text-left">
+      <thead class="bg-[#111827]">
+        <tr>
+          <th class="p-3">Student</th>
+          <th class="p-3">Phone</th>
+          <th class="p-3">Status</th>
+          <th class="p-3">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="leadsTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Back Button -->
+  <a href="manager.html"
+     class="fixed bottom-6 right-6 px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl shadow-lg">
+     ← Dashboard
+  </a>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+// 🔥 YOUR FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_MSG_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const agentSelect = document.getElementById("agentSelect");
+const statusBoxes = document.getElementById("statusBoxes");
+const leadsTableBody = document.getElementById("leadsTableBody");
+const tableContainer = document.getElementById("tableContainer");
+
+let agentLeads = [];
+
+// Load agents
+loadAgents();
+
+async function loadAgents() {
+  const { getDocs } = await import("https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js");
+
+  const snapshot = await getDocs(collection(db, "users"));
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (data.role === "agent") {
+      const option = document.createElement("option");
+      option.value = doc.id;
+      option.textContent = data.name;
+      agentSelect.appendChild(option);
+    }
+  });
+}
+
+agentSelect.addEventListener("change", () => {
+  const uid = agentSelect.value;
+  if (!uid) return;
+  loadAgentData(uid);
+});
+
+function loadAgentData(uid) {
+
+  const q = query(
+    collection(db, "leads"),
+    where("assignedTo", "==", uid),
+    where("deleted", "==", false)
+  );
+
+  onSnapshot(q, snapshot => {
+    agentLeads = [];
+    snapshot.forEach(doc => {
+      agentLeads.push({ id: doc.id, ...doc.data() });
+    });
+    renderBoxes();
+  });
+}
+
+function renderBoxes() {
+
+  statusBoxes.innerHTML = "";
+  statusBoxes.classList.remove("hidden");
+
+  const stats = {
+    Assigned: agentLeads.length,
+    Pending: agentLeads.filter(l => l.status === "New").length,
+    Called: agentLeads.filter(l => l.status !== "New").length,
+    "Interested / Follow Up": agentLeads.filter(l => l.status === "Follow Up").length,
+    "Not Interested": agentLeads.filter(l => l.status === "Not Interested").length,
+    "Switch Off / Not Received": agentLeads.filter(l => l.status === "Not Received / Switch Off").length,
+    Joined: agentLeads.filter(l => l.status === "Joined").length,
+    "Wrong / Invalid": agentLeads.filter(l => l.status === "Invalid / Wrong Number").length
+  };
+
+  for (let key in stats) {
+    const box = document.createElement("div");
+    box.className =
+      "bg-[#111827] p-5 rounded-2xl shadow-lg cursor-pointer hover:scale-105 transition";
+
+    box.innerHTML = `
+      <h2 class="text-sm text-gray-400">${key}</h2>
+      <p class="text-3xl mt-2 font-bold">${stats[key]}</p>
+    `;
+
+    box.onclick = () => filterTable(key);
+
+    statusBoxes.appendChild(box);
+  }
+}
+
+function filterTable(type) {
+
+  tableContainer.classList.remove("hidden");
+  leadsTableBody.innerHTML = "";
+
+  let filtered = [];
+
+  if (type === "Assigned")
+    filtered = agentLeads;
+
+  else if (type === "Pending")
+    filtered = agentLeads.filter(l => l.status === "New");
+
+  else if (type === "Called")
+    filtered = agentLeads.filter(l => l.status !== "New");
+
+  else if (type === "Interested / Follow Up")
+    filtered = agentLeads.filter(l => l.status === "Follow Up");
+
+  else if (type === "Not Interested")
+    filtered = agentLeads.filter(l => l.status === "Not Interested");
+
+  else if (type === "Switch Off / Not Received")
+    filtered = agentLeads.filter(l => l.status === "Not Received / Switch Off");
+
+  else if (type === "Joined")
+    filtered = agentLeads.filter(l => l.status === "Joined");
+
+  else if (type === "Wrong / Invalid")
+    filtered = agentLeads.filter(l => l.status === "Invalid / Wrong Number");
+
+  filtered.forEach(lead => {
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td class="p-3">${lead.studentName}</td>
+      <td class="p-3">${lead.phone}</td>
+      <td class="p-3">${lead.status}</td>
+      <td class="p-3">₹${lead.amount || 0}</td>
+    `;
+
+    leadsTableBody.appendChild(row);
+  });
+}
+
+</script>
+</body>
+</html>
+
