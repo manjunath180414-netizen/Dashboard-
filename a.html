@@ -228,70 +228,75 @@ function copyNumber(){
 }
 
 function submitStatus(){
-const status = document.getElementById("statusSelect").value;
 
-if(status === "New"){
-    alert("Please select a valid status before submitting.");
-    return;
-}
+    const status = document.getElementById("statusSelect").value;
+
+    if(status === "New"){
+        alert("Please select a valid status before submitting.");
+        return;
+    }
 
     if(!callStartTime){
         alert("You must copy number before updating status.");
         return;
     }
-const spokenSeconds = (parseInt(spokenMin)*60) + parseInt(spokenSec);
-    const spokenMin=prompt("Enter spoken minutes:");
-    const spokenSec=prompt("Enter spoken seconds:");
 
-    if(spokenMin===null || spokenSec===null){
+    const spokenMin = prompt("Enter spoken minutes:");
+    const spokenSec = prompt("Enter spoken seconds:");
+
+    if(spokenMin === null || spokenSec === null){
         return;
     }
 
-    const callEnd=new Date();
-    const realSeconds=Math.floor((callEnd-callStartTime)/1000);
+    const spokenSeconds = (parseInt(spokenMin)*60) + parseInt(spokenSec);  // ✅ THIS WAS MISSING
 
-    if(spokenSeconds>realSeconds){
+    const callEnd = new Date();
+    const realSeconds = Math.floor((callEnd - callStartTime)/1000);
+
+    if(spokenSeconds > realSeconds){
         alert("Spoken time cannot exceed real time.");
         return;
     }
 
     db.collection("callLogs").add({
-        agentId:agentUID,
-        leadId:currentLeadId,
-        numberCopiedTime:callStartTime,
-        statusUpdatedTime:firebase.firestore.FieldValue.serverTimestamp(),
-        spokenSeconds:spokenSeconds,
-        realTimeSeconds:realSeconds
+        agentId: agentUID,
+        leadId: currentLeadId,
+        numberCopiedTime: callStartTime,
+        statusUpdatedTime: firebase.firestore.FieldValue.serverTimestamp(),
+        spokenSeconds: spokenSeconds,
+        realTimeSeconds: realSeconds
     });
 
-    let updateData={
-        status:status,
-        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    let updateData = {
+        status: status,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    if(status==="Switch Off"){
-        updateData.followUpTime=Date.now()+(12*60*60*1000);
+    if(status === "Switch Off"){
+        updateData.followUpTime = Date.now() + (12*60*60*1000);
     }
-if(status === "Not Received"){
-    updateData.followUpTime = Date.now() + (6 * 60 * 60 * 1000); 
-}
 
-    if(status==="Joined"){
-        const amount=prompt("Enter amount:");
+    if(status === "Not Received"){
+        updateData.followUpTime = Date.now() + (6*60*60*1000);
+    }
+
+    if(status === "Joined"){
+        const amount = prompt("Enter amount:");
         if(!amount){
             return;
         }
-        updateData.amount=parseInt(amount);
+        updateData.amount = parseInt(amount);
     }
 
     db.collection("leads").doc(currentLeadId).update(updateData)
     .then(()=>{
-        callStartTime=null;
+        callStartTime = null;
+        document.getElementById("statusSelect").value = "New";
         loadNextLead();
         loadUpdatedLeads();
-
     });
 }
+
 
 </script>
 
