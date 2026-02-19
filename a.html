@@ -184,6 +184,24 @@ auth.onAuthStateChanged(user=>{
 function logout(){
     auth.signOut().then(()=> window.location.href="index.html");
 }
+function showLead(doc){
+
+    const data = doc.data();
+    currentLeadId = doc.id;
+
+    document.getElementById("leadName").innerText = data.studentName || "No Name";
+    document.getElementById("leadPhone").innerText = data.phone;
+    document.getElementById("leadPhone").onclick = ()=>{
+        copyNumber(data.phone);
+    };
+
+    document.getElementById("leadRemark").value = data.remarks || "";
+
+    document.getElementById("leadStatus").innerHTML = generateStatusOptions(data.status);
+
+    document.getElementById("singleLeadCard").style.display="block";
+    document.getElementById("noLeadMessage").style.display="none";
+}
 
 function loadAgentLeads(){
 
