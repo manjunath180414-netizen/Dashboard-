@@ -68,13 +68,42 @@ th{ background:#f1f3f6; }
 <div class="container">
 
 <div class="stats">
-    <div class="stat-card"><h4>Total</h4><h2 id="totalLeads">0</h2></div>
-    <div class="stat-card"><h4>Interested/FU</h4><h2 id="totalInterested">0</h2></div>
-    <div class="stat-card"><h4>Not Interested</h4><h2 id="totalNotInterested">0</h2></div>
-    <div class="stat-card"><h4>Switch Off</h4><h2 id="totalSwitch">0</h2></div>
-    <div class="stat-card"><h4>Wrong</h4><h2 id="totalWrong">0</h2></div>
-    <div class="stat-card"><h4>Joined</h4><h2 id="totalJoined">0</h2></div>
+    <div class="stat-card">
+        <h4>Total Leads</h4>
+        <h2 id="totalLeads">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Pending</h4>
+        <h2 id="totalPending">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Interested / Follow Up</h4>
+        <h2 id="totalInterested">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Not Interested</h4>
+        <h2 id="totalNotInterested">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Switch Off</h4>
+        <h2 id="totalSwitch">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Wrong / Invalid</h4>
+        <h2 id="totalWrong">0</h2>
+    </div>
+
+    <div class="stat-card">
+        <h4>Joined</h4>
+        <h2 id="totalJoined">0</h2>
+    </div>
 </div>
+
 
 <table>
 <thead>
@@ -148,18 +177,22 @@ function loadAgentLeads(){
 
         const table = document.getElementById("leadTable");
         table.innerHTML="";
+let total=0, pending=0, interested=0, notInterested=0, switchOff=0, wrong=0, joined=0;
 
-        let total=0, interested=0, notInterested=0, switchOff=0, wrong=0, joined=0;
 
         snapshot.forEach(doc=>{
             const data = doc.data();
             total++;
 
-            if(data.status==="Interested/follow up") interested++;
-            if(data.status==="Not Interested") notInterested++;
-            if(data.status==="Switch Off") switchOff++;
-            if(data.status==="Wrong / Invalid") wrong++;
-            if(data.status==="Joined") joined++;
+            total++;
+
+if(data.status === "New") pending++;
+if(data.status === "Interested/follow up") interested++;
+if(data.status === "Not Interested") notInterested++;
+if(data.status === "Switch Off") switchOff++;
+if(data.status === "Wrong / Invalid") wrong++;
+if(data.status === "Joined") joined++;
+
 
             let rowStyle="";
             if(data.status==="Wrong / Invalid") rowStyle="style='background:#ff4d4d;color:white;'";
@@ -184,15 +217,16 @@ function loadAgentLeads(){
             </tr>`;
         });
 
-        document.getElementById("totalLeads").innerText=total;
-        document.getElementById("totalInterested").innerText=interested;
-        document.getElementById("totalNotInterested").innerText=notInterested;
-        document.getElementById("totalSwitch").innerText=switchOff;
-        document.getElementById("totalWrong").innerText=wrong;
-        document.getElementById("totalJoined").innerText=joined;
-    });
-}
+        document.getElementById("totalLeads").innerText = total;
+document.getElementById("totalPending").innerText = pending;
+document.getElementById("totalInterested").innerText = interested;
+document.getElementById("totalNotInterested").innerText = notInterested;
+document.getElementById("totalSwitch").innerText = switchOff;
+document.getElementById("totalWrong").innerText = wrong;
+document.getElementById("totalJoined").innerText = joined;
+});  // ← YES it ends with });
 
+}
 function generateStatusOptions(current){
     const statuses=[
         "New",
