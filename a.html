@@ -178,13 +178,9 @@ function loadNextLead(){
 }
 function loadUpdatedLeads(){
 
-    const todayStart = new Date();
-    todayStart.setHours(0,0,0,0);
-
     db.collection("leads")
     .where("assignedTo","==",agentUID)
-    .where("updatedAt",">=",todayStart)
-    .orderBy("updatedAt","desc")
+    .where("deleted","==",false)
     .onSnapshot(snapshot=>{
 
         const tableBody = document.getElementById("updatedLeadsTable");
@@ -193,16 +189,20 @@ function loadUpdatedLeads(){
         snapshot.forEach(doc=>{
             const d=doc.data();
 
-            const row = `
-                <tr>
-                    <td>${d.studentName || ""}</td>
-                    <td>${d.phone || ""}</td>
-                    <td>${d.status || ""}</td>
-                    <td>${d.updatedAt ? new Date(d.updatedAt.toDate()).toLocaleString() : ""}</td>
-                </tr>
-            `;
+            // Only show non-new leads
+            if(d.status !== "New"){
 
-            tableBody.innerHTML += row;
+                const row = `
+                    <tr>
+                        <td>${d.studentName || ""}</td>
+                        <td>${d.phone || ""}</td>
+                        <td>${d.status || ""}</td>
+                        <td>${d.updatedAt ? new Date(d.updatedAt.toDate()).toLocaleString() : ""}</td>
+                    </tr>
+                `;
+
+                tableBody.innerHTML += row;
+            }
         });
     });
 }
