@@ -118,7 +118,26 @@ table th, table td{
 </div>
 
 </div>
+<div class="section">
+<h3>Create New User</h3>
 
+<input type="text" id="newName" placeholder="Full Name">
+<input type="email" id="newEmail" placeholder="Email">
+<input type="password" id="newPassword" placeholder="Password">
+
+<select id="newRole">
+<option value="cleaner">Cleaner</option>
+<option value="info">Info Team</option>
+<option value="final">Final Team</option>
+<option value="manager">Manager</option>
+</select>
+
+<br><br>
+
+<button onclick="createUser()">Create User</button>
+
+<p id="createMsg" style="color:green;"></p>
+</div>
 <div class="section">
 <h3>Team Members</h3>
 <table>
@@ -256,6 +275,50 @@ function logout(){
         role: newRole
     }).then(()=>{
         alert("Role Updated Successfully");
+    });
+    }
+    function createUser(){
+
+    const name = document.getElementById("newName").value;
+    const email = document.getElementById("newEmail").value;
+    const password = document.getElementById("newPassword").value;
+    const role = document.getElementById("newRole").value;
+
+    if(!name || !email || !password){
+        alert("Fill all fields");
+        return;
+    }
+
+    const currentAdmin = auth.currentUser;
+
+    auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential)=>{
+
+        const newUser = userCredential.user;
+
+        // Create Firestore record
+        db.collection("users").doc(newUser.uid).set({
+            name: name,
+            email: email,
+            role: role,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        document.getElementById("createMsg").innerText = "User Created Successfully";
+
+        // Re-login Admin
+        auth.signInWithEmailAndPassword(
+            "hisacademyofficial@gmail.com",
+            prompt("Re-enter admin password")
+        );
+
+        // Clear fields
+        document.getElementById("newName").value="";
+        document.getElementById("newEmail").value="";
+        document.getElementById("newPassword").value="";
+    })
+    .catch(error=>{
+        alert(error.message);
     });
     }
 
