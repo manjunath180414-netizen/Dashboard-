@@ -215,12 +215,32 @@ function loadUpdatedLeads(){
             if(d.status !== "New"){
 
                 // Follow-up or Amount display
-const followDisplay =
-    d.status === "Joined" && d.amount
-        ? "₹ " + d.amount
-        : d.followUpTime
-            ? new Date(d.followUpTime).toLocaleString()
-            : "";
+let followDisplay = "";
+
+if(d.status === "Joined" && d.amount){
+    followDisplay = "₹ " + d.amount;
+}
+else if(d.followUpTime){
+
+    const now = Date.now();
+    const diff = d.followUpTime - now;
+
+    if(diff <= 0){
+        followDisplay = "🔴 Due Now";
+    } else {
+
+        const totalMinutes = Math.floor(diff / (1000 * 60));
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        if(hours > 0){
+            followDisplay = hours + "h " + minutes + "m left";
+        } else {
+            followDisplay = minutes + "m left";
+        }
+    }
+}
+
 
 const row = `
 <tr>
@@ -430,6 +450,9 @@ if(status === "Joined"){
 function closeFollowUp(){
     document.getElementById("followUpModal").style.display = "none";
 }
+setInterval(()=>{
+    loadUpdatedLeads();
+}, 60000);
 
 
 
