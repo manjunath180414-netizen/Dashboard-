@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>HIS Academy CRM Login</title>
+<title>HIS Academy CRM</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
     margin:0;
-    font-family:Arial, sans-serif;
+    font-family:Arial;
     background:linear-gradient(135deg,#1e3c72,#2a5298);
     display:flex;
     justify-content:center;
@@ -20,32 +20,23 @@ body{
     padding:40px;
     border-radius:10px;
     box-shadow:0 5px 20px rgba(0,0,0,0.3);
-    width:300px;
     text-align:center;
 }
-input{
-    width:100%;
-    padding:10px;
-    margin:10px 0;
-    border-radius:6px;
-    border:1px solid #ccc;
-}
 button{
-    width:100%;
-    padding:10px;
+    padding:12px 20px;
     border:none;
     border-radius:6px;
-    background:#1e3c72;
+    background:#4285F4;
     color:white;
     font-size:16px;
     cursor:pointer;
 }
 button:hover{
-    background:#16305a;
+    background:#3367d6;
 }
 .error{
     color:red;
-    font-size:14px;
+    margin-top:10px;
 }
 </style>
 
@@ -58,18 +49,12 @@ button:hover{
 
 <div class="login-box">
 <h2>HIS Academy CRM</h2>
-
-<input type="email" id="email" placeholder="Enter Email">
-<input type="password" id="password" placeholder="Enter Password">
-
-<button onclick="login()">Login</button>
-
-<p class="error" id="errorMsg"></p>
+<button onclick="googleLogin()">Sign in with Google</button>
+<p id="errorMsg" class="error"></p>
 </div>
 
 <script>
 
-// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
   authDomain: "dashboard-bd51c.firebaseapp.com",
@@ -84,86 +69,51 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// 🔐 LOGIN FUNCTION
-function login(){
+function googleLogin(){
 
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+    const provider = new firebase.auth.GoogleAuthProvider();
 
-    auth.signInWithEmailAndPassword(email, password)
-    .then((userCredential)=>{
+    auth.signInWithPopup(provider)
+    .then(result=>{
 
-        const user = userCredential.user;
+        const user = result.user;
 
-        // 🔥 ADMIN EMAIL CHECK
+        // Create user doc if not exists
+        db.collection("users").doc(user.uid).set({
+            name: user.displayName,
+            email: user.email,
+        }, { merge:true });
+
         if(user.email === "hisacademyofficial@gmail.com"){
             window.location.href="ad.html";
             return;
         }
 
-        // 🔎 Get role from Firestore
         db.collection("users").doc(user.uid).get()
         .then(doc=>{
 
             if(!doc.exists){
-                document.getElementById("errorMsg").innerText="User not registered.";
-                auth.signOut();
+                document.getElementById("errorMsg").innerText="Not Registered";
                 return;
             }
 
             const role = doc.data().role;
 
-            if(role === "cleaner"){
-                window.location.href="1.html";
-            }
-            else if(role === "info"){
-                window.location.href="2.html";
-            }
-            else if(role === "final"){
-                window.location.href="3.html";
-            }
-            else if(role === "manager"){
-                window.location.href="ad.html";
-            }
-            else if(role === "disabled"){
-                document.getElementById("errorMsg").innerText="Account Disabled.";
-                auth.signOut();
-            }
+            if(role === "cleaner") window.location.href="1.html";
+            else if(role === "info") window.location.href="2.html";
+            else if(role === "final") window.location.href="3.html";
+            else if(role === "manager") window.location.href="ad.html";
             else{
-                document.getElementById("errorMsg").innerText="Invalid Role.";
+                document.getElementById("errorMsg").innerText="Access Denied";
                 auth.signOut();
             }
-
         });
 
     })
     .catch(error=>{
-        document.getElementById("errorMsg").innerText = error.message;
+        document.getElementById("errorMsg").innerText=error.message;
     });
 }
-
-// 🔄 Auto Redirect If Already Logged In
-auth.onAuthStateChanged(user=>{
-    if(user){
-
-        if(user.email === "hisacademyofficial@gmail.com"){
-            window.location.href="ad.html";
-            return;
-        }
-
-        db.collection("users").doc(user.uid).get()
-        .then(doc=>{
-            if(!doc.exists) return;
-
-            const role = doc.data().role;
-
-            if(role === "cleaner") window.location.href="1.html";
-            if(role === "info") window.location.href="2.html";
-            if(role === "final") window.location.href="3.html";
-            if(role === "manager") window.location.href="ad.html";
-        });
-    }
-});
 
 </script>
 
