@@ -92,10 +92,12 @@ Welcome, <b id="agentName">Agent</b>
         <table width="100%" border="1" cellpadding="8" style="background:white;border-collapse:collapse;">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Phone</th>
-                    <th>Status</th>
-                    <th>Updated Time</th>
+                   <th>Name</th>
+<th>Phone</th>
+<th>Status</th>
+<th>Follow Up / Amount</th>
+<th>Updated Time</th>
+
                 </tr>
             </thead>
             <tbody id="updatedLeadsTable"></tbody>
@@ -195,7 +197,15 @@ function loadUpdatedLeads(){
             // Only show non-new leads
             if(d.status !== "New"){
 
-                const row = `
+                // Follow-up or Amount display
+const followDisplay =
+    d.status === "Joined" && d.amount
+        ? "₹ " + d.amount
+        : d.followUpTime
+            ? new Date(d.followUpTime).toLocaleString()
+            : "";
+
+const row = `
 <tr>
 <td>${d.studentName || ""}</td>
 <td>${d.phone || ""}</td>
@@ -205,9 +215,11 @@ function loadUpdatedLeads(){
 </select>
 <button onclick="updateExistingStatus('${doc.id}')">Save</button>
 </td>
+<td>${followDisplay}</td>
 <td>${d.updatedAt ? new Date(d.updatedAt.toDate()).toLocaleString() : ""}</td>
 </tr>
 `;
+
 
 
 
@@ -247,37 +259,45 @@ function generateStatusOptions(current){
     return statuses.map(s =>
         `<option value="${s}" ${s===current ? "selected" : ""}>${s}</option>`
     ).join("");
-}
-function updateExistingStatus(id){
+}function updateExistingStatus(id){
 
     const select = document.getElementById("status_" + id);
     const newStatus = select.value;
 
-    const spokenMin = prompt("Enter spoken minutes:");
-    if(spokenMin === null) return;
-
-    const spokenSec = prompt("Enter spoken seconds:");
-    if(spokenSec === null) return;
-
-    const spokenSeconds = (parseInt(spokenMin)*60) + parseInt(spokenSec);
-
-    db.collection("callLogs").add({
-        agentId: agentUID,
-        leadId: id,
-        numberCopiedTime: new Date(),
-        statusUpdatedTime: firebase.firestore.FieldValue.serverTimestamp(),
-        spokenSeconds: spokenSeconds,
-        realTimeSeconds: spokenSeconds,
-        reCall: true
-    });
-
     let updateData = {
         status: newStatus,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        followUpTime: null,
+        amount: null
     };
+
+    // 🎯 FOLLOW UP REQUIRED
+    if(newStatus === "Interested/follow up"){
+
+        const date = prompt("Enter follow-up date (YYYY-MM-DD):");
+        if(!date) return;
+
+        const time = prompt("Enter follow-up time (HH:MM):");
+        if(!time) return;
+
+        updateData.followUpTime = new Date(date + " " + time).getTime();
+    }
+
+    // 🎯 AUTO 6 HOUR TIMER
+    if(newStatus === "Switch Off" || newStatus === "Not Received"){
+        updateData.followUpTime = Date.now() + (6 * 60 * 60 * 1000);
+    }
+
+    // 🎯 JOINED
+    if(newStatus === "Joined"){
+        const amount = prompt("Enter amount:");
+        if(!amount) return;
+        updateData.amount = parseInt(amount);
+    }
 
     db.collection("leads").doc(id).update(updateData);
 }
+
 
 
 function submitStatus(){
