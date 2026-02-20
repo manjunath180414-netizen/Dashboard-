@@ -54,7 +54,7 @@ button{
 <h2>HIS Academy - Calling Mode</h2>
 <div>
 Welcome, <b id="agentName">Agent</b>
-<button onclick="logout()">Logout<button>
+<button onclick="logout()">Logout</button>
 </div>
 </div>
 
@@ -196,7 +196,6 @@ function loadUpdatedLeads(){
             if(d.status !== "New"){
 
                 const row = `
-                    <tr>const row = `
 <tr>
 <td>${d.studentName || ""}</td>
 <td>${d.phone || ""}</td>
@@ -208,6 +207,7 @@ function loadUpdatedLeads(){
 <td>${d.updatedAt ? new Date(d.updatedAt.toDate()).toLocaleString() : ""}</td>
 </tr>
 `;
+
 
 
                 tableBody.innerHTML += row;
