@@ -2,43 +2,61 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Agent Spy Panel</title>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<title>HIS Academy - SPY PANEL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{font-family:Arial;background:#f4f6f9;padding:20px;}
-table{width:100%;background:white;border-collapse:collapse;}
-th,td{padding:10px;border-bottom:1px solid #ddd;text-align:center;}
-th{background:#eee;}
-.card{background:white;padding:15px;margin-bottom:20px;border-radius:8px;}
+body{margin:0;font-family:Arial;background:#f4f6f9;}
+.header{
+background:#111;
+color:white;
+padding:15px 25px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+.container{padding:25px;}
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+}
+th,td{padding:12px;border-bottom:1px solid #eee;}
+th{background:#f1f3f6;}
+.online{color:green;font-weight:bold;}
+.offline{color:red;font-weight:bold;}
 </style>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 </head>
 
 <body>
 
-<h2>Agent Activity Monitoring</h2>
+<div class="header">
+<h2>🕵️ Agent Monitoring Dashboard</h2>
+<button onclick="logout()">Logout</button>
+</div>
 
-<div id="agentSummary"></div>
-
-<h3>Call Logs</h3>
+<div class="container">
 <table>
 <thead>
 <tr>
 <th>Agent</th>
-<th>Lead</th>
-<th>Start</th>
-<th>End</th>
-<th>Spoken</th>
-<th>Real</th>
+<th>Calls Today</th>
+<th>Total Talk Time</th>
+<th>Total Real Time</th>
+<th>Efficiency</th>
+<th>Status</th>
+<th>Last Active</th>
 </tr>
 </thead>
-<tbody id="logTable"></tbody>
+<tbody id="spyTable"></tbody>
 </table>
+</div>
 
 <script>
-
 const firebaseConfig = {
   apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
   authDomain: "dashboard-bd51c.firebaseapp.com",
@@ -49,86 +67,92 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 const db = firebase.firestore();
 
-loadSpyData();
+auth.onAuthStateChanged(user=>{
+    if(!user){
+        window.location.href="index.html";
+        return;
+    }
+    loadSpyData();
+});
+
+function logout(){
+    auth.signOut().then(()=>window.location.href="index.html");
+}
 
 function loadSpyData(){
 
-    db.collection("callLogs").orderBy("numberCopiedTime","desc")
-    .onSnapshot(snapshot=>{
+    db.collection("users").onSnapshot(async snapshot=>{
 
-        let table = document.getElementById("logTable");
+        const table = document.getElementById("spyTable");
         table.innerHTML="";
 
-        let agentStats = {};
+        for(const doc of snapshot.docs){
 
-        snapshot.forEach(doc=>{
+            const agent = doc.data();
+            const agentId = doc.id;
 
-            const d = doc.data();
+            // TODAY START
+            const todayStart = new Date();
+            todayStart.setHours(0,0,0,0);
 
-            const start = new Date(d.numberCopiedTime.seconds*1000);
-            const end = new Date(d.statusUpdatedTime.seconds*1000);
+            const logs = await db.collection("callLogs")
+                .where("agentId","==",agentId)
+                .where("statusUpdatedTime",">=",todayStart)
+                .get();
 
-            const spoken = formatTime(d.spokenSeconds);
-            const real = formatTime(d.realTimeSeconds);
+            let calls = 0;
+            let totalSpoken = 0;
+            let totalReal = 0;
+
+            logs.forEach(l=>{
+                const d = l.data();
+                calls++;
+                totalSpoken += d.spokenSeconds || 0;
+                totalReal += d.realTimeSeconds || 0;
+            });
+
+            const efficiency = totalReal > 0
+                ? Math.round((totalSpoken / totalReal) * 100)
+                : 0;
+
+            const now = Date.now();
+            const lastActive = agent.lastActive
+                ? agent.lastActive.toDate().getTime()
+                : 0;
+
+            const online = (now - lastActive) < 2*60*1000;
 
             table.innerHTML += `
             <tr>
-                <td>${d.agentId}</td>
-                <td>${d.leadId}</td>
-                <td>${start.toLocaleTimeString()}</td>
-                <td>${end.toLocaleTimeString()}</td>
-                <td>${spoken}</td>
-                <td>${real}</td>
-            </tr>`;
-
-            if(!agentStats[d.agentId]){
-                agentStats[d.agentId] = {
-                    calls:0,
-                    spoken:0,
-                    real:0
-                };
-            }
-
-            agentStats[d.agentId].calls++;
-            agentStats[d.agentId].spoken += d.spokenSeconds;
-            agentStats[d.agentId].real += d.realTimeSeconds;
-        });
-
-        renderSummary(agentStats);
+                <td>${agent.name || "No Name"}</td>
+                <td>${calls}</td>
+                <td>${formatTime(totalSpoken)}</td>
+                <td>${formatTime(totalReal)}</td>
+                <td>${efficiency}%</td>
+                <td class="${online?'online':'offline'}">
+                    ${online?'Online':'Offline'}
+                </td>
+                <td>
+                    ${agent.lastActive ? 
+                    new Date(agent.lastActive.toDate()).toLocaleTimeString()
+                    : '-'}
+                </td>
+            </tr>
+            `;
+        }
     });
 }
 
-function renderSummary(stats){
-
-    let container = document.getElementById("agentSummary");
-    container.innerHTML="";
-
-    for(let agent in stats){
-
-        const s = stats[agent];
-        const efficiency = ((s.spoken / s.real) * 100).toFixed(1);
-
-        container.innerHTML += `
-        <div class="card">
-            <b>Agent:</b> ${agent} <br>
-            Calls: ${s.calls} <br>
-            Talk Time: ${formatTime(s.spoken)} <br>
-            Real Call Time: ${formatTime(s.real)} <br>
-            Efficiency: ${efficiency}% 
-        </div>`;
-    }
+function formatTime(seconds){
+    const h = Math.floor(seconds/3600);
+    const m = Math.floor((seconds%3600)/60);
+    const s = seconds%60;
+    return `${h}h ${m}m ${s}s`;
 }
-
-function formatTime(sec){
-    const m = Math.floor(sec/60);
-    const s = sec%60;
-    return m+"m "+s+"s";
-}
-
 </script>
 
 </body>
 </html>
-
