@@ -340,26 +340,37 @@ function submitStatus(){
         realTimeSeconds: realSeconds
     });
 
-    let updateData = {
-        status: status,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
+let updateData = {
+    status: status,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    followUpTime: null,
+    amount: null
+};
 
-    if(status === "Switch Off"){
-        updateData.followUpTime = Date.now() + (12*60*60*1000);
-    }
+// 🎯 INTERESTED / FOLLOW UP
+if(status === "Interested/follow up"){
 
-    if(status === "Not Received"){
-        updateData.followUpTime = Date.now() + (6*60*60*1000);
-    }
+    const date = prompt("Enter follow-up date (YYYY-MM-DD):");
+    if(!date) return;
 
-    if(status === "Joined"){
-        const amount = prompt("Enter amount:");
-        if(!amount){
-            return;
-        }
-        updateData.amount = parseInt(amount);
-    }
+    const time = prompt("Enter follow-up time (HH:MM):");
+    if(!time) return;
+
+    updateData.followUpTime = new Date(date + " " + time).getTime();
+}
+
+// 🎯 AUTO 6 HOURS
+if(status === "Switch Off" || status === "Not Received"){
+    updateData.followUpTime = Date.now() + (6 * 60 * 60 * 1000);
+}
+
+// 🎯 JOINED
+if(status === "Joined"){
+    const amount = prompt("Enter amount:");
+    if(!amount) return;
+    updateData.amount = parseInt(amount);
+}
+
 
     db.collection("leads").doc(currentLeadId).update(updateData)
     .then(()=>{
