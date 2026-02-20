@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel - HIS Academy</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f4f6f9;
+}
+.header{
+    background:linear-gradient(90deg,#1e3c72,#2a5298);
+    color:white;
+    padding:15px 30px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+.container{
+    padding:30px;
+}
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:20px;
+}
+.card{
+    background:white;
+    padding:25px;
+    border-radius:10px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    text-align:center;
+}
+.card h2{
+    margin:10px 0;
+    color:#1e3c72;
+}
+button{
+    padding:8px 15px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+.logout-btn{
+    background:#ff4d4d;
+    color:white;
+}
+.section{
+    margin-top:40px;
+}
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+}
+table th, table td{
+    padding:10px;
+    border:1px solid #ddd;
+    text-align:center;
+}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+
+<body>
+
+<div class="header">
+<h2>HIS Academy - Admin Panel</h2>
+<div>
+<b id="adminEmail"></b>
+<button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+</div>
+
+<div class="container">
+
+<div class="grid">
+
+<div class="card">
+<h4>Total Leads</h4>
+<h2 id="totalLeads">0</h2>
+</div>
+
+<div class="card">
+<h4>Verification Stage</h4>
+<h2 id="verificationCount">0</h2>
+</div>
+
+<div class="card">
+<h4>Info Stage</h4>
+<h2 id="infoCount">0</h2>
+</div>
+
+<div class="card">
+<h4>WhatsApp Stage</h4>
+<h2 id="whatsappCount">0</h2>
+</div>
+
+<div class="card">
+<h4>Closed Leads</h4>
+<h2 id="closedCount">0</h2>
+</div>
+
+<div class="card">
+<h4>Joined Students</h4>
+<h2 id="joinedCount">0</h2>
+</div>
+
+<div class="card">
+<h4>Total Revenue</h4>
+<h2 id="totalRevenue">₹0</h2>
+</div>
+
+</div>
+
+<div class="section">
+<h3>Team Members</h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody id="teamTable"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+
+// 🔥 Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// 🔐 Admin Authentication
+auth.onAuthStateChanged(user=>{
+    if(!user){
+        window.location.href="index.html";
+        return;
+    }
+
+    if(user.email !== "hisacademyofficial@gmail.com"){
+        alert("Access Denied");
+        auth.signOut();
+        window.location.href="index.html";
+        return;
+    }
+
+    document.getElementById("adminEmail").innerText = user.email;
+
+    loadDashboard();
+    loadTeam();
+});
+
+// 📊 Load Dashboard Stats
+function loadDashboard(){
+
+    db.collection("leads").onSnapshot(snapshot=>{
+
+        let total = 0;
+        let verification = 0;
+        let info = 0;
+        let whatsapp = 0;
+        let closed = 0;
+        let joined = 0;
+        let revenue = 0;
+
+        snapshot.forEach(doc=>{
+            const d = doc.data();
+            total++;
+
+            if(d.stage === "verification") verification++;
+            if(d.stage === "info") info++;
+            if(d.stage === "whatsapp") whatsapp++;
+            if(d.stage === "closed") closed++;
+            if(d.status === "Joined"){
+                joined++;
+                if(d.amount){
+                    revenue += d.amount;
+                }
+            }
+        });
+
+        document.getElementById("totalLeads").innerText = total;
+        document.getElementById("verificationCount").innerText = verification;
+        document.getElementById("infoCount").innerText = info;
+        document.getElementById("whatsappCount").innerText = whatsapp;
+        document.getElementById("closedCount").innerText = closed;
+        document.getElementById("joinedCount").innerText = joined;
+        document.getElementById("totalRevenue").innerText = "₹" + revenue;
+
+    });
+}
+
+// 👥 Load Team Members
+function loadTeam(){
+
+    db.collection("users").onSnapshot(snapshot=>{
+
+        const table = document.getElementById("teamTable");
+        table.innerHTML = "";
+
+        snapshot.forEach(doc=>{
+            const d = doc.data();
+
+            const row = `
+            <tr>
+            <td>${d.name || ""}</td>
+            <td>${d.email || ""}</td>
+            <td>${d.role || ""}</td>
+            </tr>
+            `;
+
+            table.innerHTML += row;
+        });
+    });
+}
+
+function logout(){
+    auth.signOut().then(()=>{
+        window.location.href="index.html";
+    });
+}
+
+</script>
+
+</body>
+</html>
