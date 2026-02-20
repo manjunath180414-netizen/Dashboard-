@@ -59,7 +59,49 @@ Welcome, <b id="agentName">Agent</b>
 </div>
 
 <div class="container">
+<div id="statsCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-bottom:25px;">
 
+<div class="card" onclick="filterLeads('ALL')">
+<h4>Assigned</h4>
+<h2 id="countAssigned">0</h2>
+</div>
+
+<div class="card" onclick="filterLeads('New')">
+<h4>New</h4>
+<h2 id="countNew">0</h2>
+</div>
+
+<div class="card" onclick="filterLeads('Interested/follow up')">
+<h4>Interested</h4>
+<h2 id="countInterested">0</h2>
+</div>
+
+<div class="card" onclick="filterLeads('Not Received')">
+<h4>Not Received</h4>
+<h2 id="countNotReceived">0</h2>
+</div>
+
+<div class="card" onclick="filterLeads('Switch Off')">
+<h4>Switch Off</h4>
+<h2 id="countSwitch">0</h2>
+</div>
+
+<div class="card" onclick="filterLeads('Not Interested')">
+<h4>Not Interested</h4>
+<h2 id="countNotInterested">0</h2>
+</div>
+
+<div class="card" onclick="filterLeads('Wrong / Invalid')">
+<h4>Wrong</h4>
+<h2 id="countWrong">0</h2>
+</div>
+
+<div class="card" onclick="filterLeads('Joined')">
+<h4>Joined</h4>
+<h2 id="countJoined">0</h2>
+</div>
+
+</div>
 <div class="container">
 
     <!-- Current Lead Card -->
@@ -444,6 +486,7 @@ if(status === "Joined"){
         closeFollowUp();
         loadNextLead();
         loadUpdatedLeads();
+        loadStats();
     });
 }
 
@@ -453,8 +496,74 @@ function closeFollowUp(){
 setInterval(()=>{
     loadUpdatedLeads();
 }, 60000);
+function loadStats(){
 
+    db.collection("leads")
+    .where("assignedTo","==",agentUID)
+    .where("deleted","==",false)
+    .onSnapshot(snapshot=>{
 
+        let assigned=0, newC=0, interested=0, notRec=0,
+        switchOff=0, notInt=0, wrong=0, joined=0;
+
+        snapshot.forEach(doc=>{
+            const d=doc.data();
+            assigned++;
+
+            if(d.status==="New") newC++;
+            if(d.status==="Interested/follow up") interested++;
+            if(d.status==="Not Received") notRec++;
+            if(d.status==="Switch Off") switchOff++;
+            if(d.status==="Not Interested") notInt++;
+            if(d.status==="Wrong / Invalid") wrong++;
+            if(d.status==="Joined") joined++;
+        });
+
+        document.getElementById("countAssigned").innerText=assigned;
+        document.getElementById("countNew").innerText=newC;
+        document.getElementById("countInterested").innerText=interested;
+        document.getElementById("countNotReceived").innerText=notRec;
+        document.getElementById("countSwitch").innerText=switchOff;
+        document.getElementById("countNotInterested").innerText=notInt;
+        document.getElementById("countWrong").innerText=wrong;
+        document.getElementById("countJoined").innerText=joined;
+    });
+                }
+function filterLeads(status){
+
+    db.collection("leads")
+    .where("assignedTo","==",agentUID)
+    .where("deleted","==",false)
+    .onSnapshot(snapshot=>{
+
+        const tableBody = document.getElementById("updatedLeadsTable");
+        tableBody.innerHTML="";
+
+        snapshot.forEach(doc=>{
+            const d=doc.data();
+
+            if(status!=="ALL" && d.status!==status) return;
+
+            const followDisplay =
+                d.status === "Joined" && d.amount
+                ? "₹ "+d.amount
+                : d.followUpTime
+                    ? new Date(d.followUpTime).toLocaleString()
+                    : "";
+
+            const row = `
+            <tr>
+            <td>${d.studentName || ""}</td>
+            <td>${d.phone || ""}</td>
+            <td>${d.status}</td>
+            <td>${followDisplay}</td>
+            </tr>
+            `;
+
+            tableBody.innerHTML+=row;
+        });
+    });
+}
 
 </script>
 
