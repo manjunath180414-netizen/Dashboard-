@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Final Conversion Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{margin:0;font-family:Arial;background:#f4f6f9;}
+.header{background:#0f2027;color:white;padding:15px;display:flex;justify-content:space-between;}
+.container{padding:25px;}
+.card{background:white;padding:25px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.1);max-width:500px;margin:auto;text-align:center;}
+button{padding:10px 15px;border:none;border-radius:6px;margin:5px;cursor:pointer;}
+select,input{padding:8px;margin-top:10px;}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+
+<body>
+
+<div class="header">
+<div>Final Team</div>
+<div id="userEmail"></div>
+</div>
+
+<div class="container">
+<div class="card" id="leadCard">
+<h3 id="studentName"></h3>
+<p id="studentPhone"></p>
+<button onclick="copyNumber()">Copy Number</button>
+<br>
+<select id="status">
+<option value="">Select Status</option>
+<option value="Payment Received">Payment Received</option>
+<option value="Payment Pending">Payment Pending</option>
+<option value="Not Paying">Not Paying</option>
+</select>
+<input type="number" id="amount" placeholder="Amount">
+<br>
+<button onclick="updateLead()">Submit</button>
+</div>
+</div>
+
+<script>
+
+firebase.initializeApp({
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+});
+
+const auth=firebase.auth();
+const db=firebase.firestore();
+let currentLeadId=null;
+let currentPhone=null;
+
+auth.onAuthStateChanged(user=>{
+    if(!user){window.location.href="index.html";return;}
+    document.getElementById("userEmail").innerText=user.email;
+
+    db.collection("users").doc(user.uid).get().then(doc=>{
+        if(!doc.exists || doc.data().role!=="final"){
+            alert("Access Denied");
+            auth.signOut();
+            return;
+        }
+        loadLead();
+    });
+});
+
+function loadLead(){
+    db.collection("leads")
+    .where("stage","==","whatsapp")
+    .limit(1)
+    .get()
+    .then(snapshot=>{
+        if(snapshot.empty){
+            document.getElementById("leadCard").innerHTML="<h3>No Leads</h3>";
+            return;
+        }
+        const doc=snapshot.docs[0];
+        const d=doc.data();
+        currentLeadId=doc.id;
+        currentPhone=d.phone;
+        document.getElementById("studentName").innerText=d.studentName;
+        document.getElementById("studentPhone").innerText=d.phone;
+    });
+}
+
+function copyNumber(){
+    navigator.clipboard.writeText(currentPhone);
+}
+
+function updateLead(){
+    const status=document.getElementById("status").value;
+    if(!status) return alert("Select Status");
+
+    let updateData={status:status};
+
+    if(status==="Payment Received"){
+        updateData.stage="closed";
+        updateData.amount=parseInt(document.getElementById("amount").value||0);
+    }
+    if(status==="Payment Pending") updateData.stage="whatsapp";
+    if(status==="Not Paying") updateData.stage="closed";
+
+    db.collection("leads").doc(currentLeadId).update(updateData)
+    .then(()=> loadLead());
+}
+
+</script>
+</body>
+</html>
