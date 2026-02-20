@@ -250,6 +250,30 @@ function updateExistingStatus(id, selectElement){
 
     const newStatus = selectElement.value;
 
+    const spokenMin = prompt("Enter spoken minutes:");
+    const spokenSec = prompt("Enter spoken seconds:");
+
+    if(spokenMin === null || spokenSec === null){
+        return;
+    }
+
+    const spokenSeconds = (parseInt(spokenMin)*60) + parseInt(spokenSec);
+
+    const callStart = new Date();
+    const callEnd = new Date();
+    const realSeconds = spokenSeconds; // since this is re-update, we use spoken
+
+    // Save new log entry
+    db.collection("callLogs").add({
+        agentId: agentUID,
+        leadId: id,
+        numberCopiedTime: callStart,
+        statusUpdatedTime: firebase.firestore.FieldValue.serverTimestamp(),
+        spokenSeconds: spokenSeconds,
+        realTimeSeconds: realSeconds,
+        reCall: true
+    });
+
     let updateData = {
         status: newStatus,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
