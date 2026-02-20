@@ -504,32 +504,35 @@ function loadStats(){
     .where("deleted","==",false)
     .onSnapshot(snapshot=>{
 
-        let assigned=0, newC=0, interested=0, notRec=0,
-        switchOff=0, notInt=0, wrong=0, joined=0;
+        let counts = {
+            assigned: 0,
+            New: 0,
+            "Interested/follow up": 0,
+            "Not Received": 0,
+            "Switch Off": 0,
+            "Not Interested": 0,
+            "Wrong / Invalid": 0,
+            Joined: 0
+        };
 
         snapshot.forEach(doc=>{
-            const d=doc.data();
-            assigned++;
-
-            if(d.status==="New") newC++;
-            if(d.status==="Interested/follow up") interested++;
-            if(d.status==="Not Received") notRec++;
-            if(d.status==="Switch Off") switchOff++;
-            if(d.status==="Not Interested") notInt++;
-            if(d.status==="Wrong / Invalid") wrong++;
-            if(d.status==="Joined") joined++;
+            const d = doc.data();
+            counts.assigned++;
+            if(counts[d.status] !== undefined){
+                counts[d.status]++;
+            }
         });
 
-        document.getElementById("countAssigned").innerText=assigned;
-        document.getElementById("countNew").innerText=newC;
-        document.getElementById("countInterested").innerText=interested;
-        document.getElementById("countNotReceived").innerText=notRec;
-        document.getElementById("countSwitch").innerText=switchOff;
-        document.getElementById("countNotInterested").innerText=notInt;
-        document.getElementById("countWrong").innerText=wrong;
-        document.getElementById("countJoined").innerText=joined;
+        document.getElementById("countAssigned").innerText = counts.assigned;
+        document.getElementById("countNew").innerText = counts["New"];
+        document.getElementById("countInterested").innerText = counts["Interested/follow up"];
+        document.getElementById("countNotReceived").innerText = counts["Not Received"];
+        document.getElementById("countSwitch").innerText = counts["Switch Off"];
+        document.getElementById("countNotInterested").innerText = counts["Not Interested"];
+        document.getElementById("countWrong").innerText = counts["Wrong / Invalid"];
+        document.getElementById("countJoined").innerText = counts["Joined"];
     });
-                }
+}
 function filterLeads(status){
 
     db.collection("leads")
