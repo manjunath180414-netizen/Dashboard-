@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cleaning Agent Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:#f4f6f9;
+}
+.header{
+    background:#1e3c72;
+    color:white;
+    padding:15px;
+    display:flex;
+    justify-content:space-between;
+}
+.container{
+    padding:20px;
+}
+.card{
+    background:white;
+    padding:25px;
+    border-radius:10px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
+    max-width:500px;
+    margin:auto;
+    text-align:center;
+}
+button{
+    padding:10px 15px;
+    border:none;
+    border-radius:6px;
+    margin:5px;
+    cursor:pointer;
+}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+
+<body>
+
+<div class="header">
+<h3>Cleaning Agent Panel</h3>
+<div>
+Welcome <b id="agentName"></b>
+<button onclick="logout()">Logout</button>
+</div>
+</div>
+
+<div class="container">
+
+<div class="card" id="leadCard">
+<h3 id="studentName">Loading...</h3>
+<p id="studentPhone"></p>
+
+<button onclick="copyNumber()">Copy & Call</button>
+
+<br><br>
+
+<select id="statusSelect">
+<option value="">Select Status</option>
+<option value="Verified">Verified</option>
+<option value="Switch Off">Switch Off</option>
+<option value="Not Received">Not Received</option>
+<option value="Wrong / Invalid">Wrong / Invalid</option>
+</select>
+
+<br><br>
+
+<button onclick="updateStatus()">Submit</button>
+
+</div>
+
+</div>
+
+<script>
+
+// 🔥 Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
+  authDomain: "dashboard-bd51c.firebaseapp.com",
+  projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let agentUID = null;
+let currentLeadId = null;
+let currentPhone = null;
+
+// 🔐 Login Check
+auth.onAuthStateChanged(user=>{
+    if(!user){
+        window.location.href="index.html";
+        return;
+    }
+
+    agentUID = user.uid;
+
+    db.collection("users").doc(agentUID).get().then(doc=>{
+        document.getElementById("agentName").innerText =
+        doc.exists ? doc.data().name : "Agent";
+    });
+
+    assignLeadsIfNeeded();
+});
+
+// 🚀 AUTO ASSIGN 50 LEADS
+function assignLeadsIfNeeded(){
+
+    db.collection("leads")
+    .where("stage","==","verification")
+    .where("assignedCleaner","==",null)
+    .limit(50)
+    .get()
+    .then(snapshot=>{
+        snapshot.forEach(doc=>{
+            db.collection("leads").doc(doc.id).update({
+                assignedCleaner: agentUID
+            });
+        });
+
+        loadNextLead();
+    });
+}
+
+// 📞 Load Next Lead
+function loadNextLead(){
+
+    db.collection("leads")
+    .where("stage","==","verification")
+    .where("assignedCleaner","==",agentUID)
+    .limit(1)
+    .get()
+    .then(snapshot=>{
+        if(snapshot.empty){
+            document.getElementById("leadCard").innerHTML =
+            "<h3>No More Leads</h3>";
+            return;
+        }
+
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+
+        currentLeadId = doc.id;
+        currentPhone = data.phone;
+
+        document.getElementById("studentName").innerText =
+        data.studentName || "No Name";
+
+        document.getElementById("studentPhone").innerText =
+        data.phone;
+    });
+}
+
+// 📋 Copy Number
+function copyNumber(){
+    navigator.clipboard.writeText(currentPhone);
+    alert("Number Copied");
+}
+
+// 🔄 Update Status
+function updateStatus(){
+
+    const status = document.getElementById("statusSelect").value;
+
+    if(!status){
+        alert("Select Status");
+        return;
+    }
+
+    let updateData = {
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if(status === "Verified"){
+        updateData.stage = "info";
+        updateData.assignedCleaner = null;
+    }
+
+    if(status === "Wrong / Invalid"){
+        updateData.stage = "closed";
+    }
+
+    if(status === "Switch Off" || status === "Not Received"){
+        updateData.followUpTime = Date.now() + (6*60*60*1000);
+    }
+
+    db.collection("leads").doc(currentLeadId)
+    .update(updateData)
+    .then(()=>{
+        document.getElementById("statusSelect").value="";
+        loadNextLead();
+    });
+}
+
+function logout(){
+    auth.signOut().then(()=>{
+        window.location.href="index.html";
+    });
+}
+
+</script>
+
+</body>
+</html>
