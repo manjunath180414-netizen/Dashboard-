@@ -242,21 +242,23 @@ function loadTeam(){
             const d = doc.data();
 
             const row = `
-            <tr>
-            <td>${d.name || ""}</td>
-            <td>${d.email || ""}</td>
-            <td>
-                <select id="role_${doc.id}">
-                    <option value="cleaner" ${d.role==="cleaner"?"selected":""}>Cleaner</option>
-                    <option value="info" ${d.role==="info"?"selected":""}>Info Team</option>
-                    <option value="final" ${d.role==="final"?"selected":""}>Final Team</option>
-                    <option value="manager" ${d.role==="manager"?"selected":""}>Manager</option>
-                    <option value="disabled" ${d.role==="disabled"?"selected":""}>Disabled</option>
-                </select>
-                <button onclick="updateRole('${doc.id}')">Save</button>
-            </td>
-            </tr>
-            `;
+<tr>
+<td>${d.name || ""}</td>
+<td>${d.email || ""}</td>
+<td>
+    <select id="role_${doc.id}">
+        <option value="cleaner" ${d.role==="cleaner"?"selected":""}>Cleaner</option>
+        <option value="info" ${d.role==="info"?"selected":""}>Info Team</option>
+        <option value="final" ${d.role==="final"?"selected":""}>Final Team</option>
+        <option value="manager" ${d.role==="manager"?"selected":""}>Manager</option>
+        <option value="disabled" ${d.role==="disabled"?"selected":""}>Disabled</option>
+    </select>
+    <button onclick="updateRole('${doc.id}')">Save</button>
+    <button style="background:red;color:white;"
+        onclick="deleteUser('${doc.id}')">Delete</button>
+</td>
+</tr>
+`;
 
             table.innerHTML += row;
         });
@@ -321,7 +323,20 @@ function logout(){
         alert(error.message);
     });
     }
+function deleteUser(userId){
 
+    if(!confirm("Are you sure you want to delete this user?")){
+        return;
+    }
+
+    db.collection("users").doc(userId).delete()
+    .then(()=>{
+        alert("User Deleted Successfully");
+    })
+    .catch(error=>{
+        alert(error.message);
+    });
+}
 </script>
 
 </body>
