@@ -200,13 +200,15 @@ function loadUpdatedLeads(){
 <td>${d.studentName || ""}</td>
 <td>${d.phone || ""}</td>
 <td>
-<select onchange="updateExistingStatus('${doc.id}', this)">
+<select id="status_${doc.id}">
     ${generateStatusOptions(d.status)}
 </select>
+<button onclick="updateExistingStatus('${doc.id}')">Save</button>
 </td>
 <td>${d.updatedAt ? new Date(d.updatedAt.toDate()).toLocaleString() : ""}</td>
 </tr>
 `;
+
 
 
 
@@ -246,31 +248,26 @@ function generateStatusOptions(current){
         `<option value="${s}" ${s===current ? "selected" : ""}>${s}</option>`
     ).join("");
 }
-function updateExistingStatus(id, selectElement){
+function updateExistingStatus(id){
 
-    const newStatus = selectElement.value;
+    const select = document.getElementById("status_" + id);
+    const newStatus = select.value;
 
     const spokenMin = prompt("Enter spoken minutes:");
-    const spokenSec = prompt("Enter spoken seconds:");
+    if(spokenMin === null) return;
 
-    if(spokenMin === null || spokenSec === null){
-        return;
-    }
+    const spokenSec = prompt("Enter spoken seconds:");
+    if(spokenSec === null) return;
 
     const spokenSeconds = (parseInt(spokenMin)*60) + parseInt(spokenSec);
 
-    const callStart = new Date();
-    const callEnd = new Date();
-    const realSeconds = spokenSeconds; // since this is re-update, we use spoken
-
-    // Save new log entry
     db.collection("callLogs").add({
         agentId: agentUID,
         leadId: id,
-        numberCopiedTime: callStart,
+        numberCopiedTime: new Date(),
         statusUpdatedTime: firebase.firestore.FieldValue.serverTimestamp(),
         spokenSeconds: spokenSeconds,
-        realTimeSeconds: realSeconds,
+        realTimeSeconds: spokenSeconds,
         reCall: true
     });
 
@@ -279,24 +276,9 @@ function updateExistingStatus(id, selectElement){
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    if(newStatus === "Switch Off"){
-        updateData.followUpTime = Date.now() + (12*60*60*1000);
-    }
-
-    if(newStatus === "Not Received"){
-        updateData.followUpTime = Date.now() + (6*60*60*1000);
-    }
-
-    if(newStatus === "Joined"){
-        const amount = prompt("Enter amount:");
-        if(!amount){
-            return;
-        }
-        updateData.amount = parseInt(amount);
-    }
-
     db.collection("leads").doc(id).update(updateData);
 }
+
 
 function submitStatus(){
 
