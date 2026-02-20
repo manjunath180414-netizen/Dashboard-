@@ -226,20 +226,38 @@ function loadTeam(){
             <tr>
             <td>${d.name || ""}</td>
             <td>${d.email || ""}</td>
-            <td>${d.role || ""}</td>
+            <td>
+                <select id="role_${doc.id}">
+                    <option value="cleaner" ${d.role==="cleaner"?"selected":""}>Cleaner</option>
+                    <option value="info" ${d.role==="info"?"selected":""}>Info Team</option>
+                    <option value="final" ${d.role==="final"?"selected":""}>Final Team</option>
+                    <option value="manager" ${d.role==="manager"?"selected":""}>Manager</option>
+                    <option value="disabled" ${d.role==="disabled"?"selected":""}>Disabled</option>
+                </select>
+                <button onclick="updateRole('${doc.id}')">Save</button>
+            </td>
             </tr>
             `;
 
             table.innerHTML += row;
         });
     });
-}
-
+        }
 function logout(){
     auth.signOut().then(()=>{
         window.location.href="index.html";
     });
 }
+    function updateRole(userId){
+
+    const newRole = document.getElementById("role_" + userId).value;
+
+    db.collection("users").doc(userId).update({
+        role: newRole
+    }).then(()=>{
+        alert("Role Updated Successfully");
+    });
+    }
 
 </script>
 
