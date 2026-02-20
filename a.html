@@ -196,13 +196,19 @@ function loadUpdatedLeads(){
             if(d.status !== "New"){
 
                 const row = `
-                    <tr>
-                        <td>${d.studentName || ""}</td>
-                        <td>${d.phone || ""}</td>
-                        <td>${d.status || ""}</td>
-                        <td>${d.updatedAt ? new Date(d.updatedAt.toDate()).toLocaleString() : ""}</td>
-                    </tr>
-                `;
+                    <tr>const row = `
+<tr>
+<td>${d.studentName || ""}</td>
+<td>${d.phone || ""}</td>
+<td>
+<select onchange="updateExistingStatus('${doc.id}', this)">
+    ${generateStatusOptions(d.status)}
+</select>
+</td>
+<td>${d.updatedAt ? new Date(d.updatedAt.toDate()).toLocaleString() : ""}</td>
+</tr>
+`;
+
 
                 tableBody.innerHTML += row;
             }
@@ -225,6 +231,47 @@ function copyNumber(){
     });
 
     alert("Number copied. Call started.");
+}
+function generateStatusOptions(current){
+    const statuses = [
+        "Interested/follow up",
+        "Not Received",
+        "Not Interested",
+        "Switch Off",
+        "Wrong / Invalid",
+        "Joined"
+    ];
+
+    return statuses.map(s =>
+        `<option value="${s}" ${s===current ? "selected" : ""}>${s}</option>`
+    ).join("");
+}
+function updateExistingStatus(id, selectElement){
+
+    const newStatus = selectElement.value;
+
+    let updateData = {
+        status: newStatus,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if(newStatus === "Switch Off"){
+        updateData.followUpTime = Date.now() + (12*60*60*1000);
+    }
+
+    if(newStatus === "Not Received"){
+        updateData.followUpTime = Date.now() + (6*60*60*1000);
+    }
+
+    if(newStatus === "Joined"){
+        const amount = prompt("Enter amount:");
+        if(!amount){
+            return;
+        }
+        updateData.amount = parseInt(amount);
+    }
+
+    db.collection("leads").doc(id).update(updateData);
 }
 
 function submitStatus(){
