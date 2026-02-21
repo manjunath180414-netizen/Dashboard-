@@ -537,3 +537,46 @@ function populateAgentDropdown() {
     bulkAgent.appendChild(option);
   }
 }
+/* ===============================
+   EXPORT LEADS TO EXCEL
+================================ */
+
+import { getDocs, collection } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const exportBtn = document.getElementById("exportLeadsBtn");
+
+exportBtn?.addEventListener("click", async () => {
+
+  const snapshot = await getDocs(collection(db, "leads"));
+
+  if (snapshot.empty) {
+    alert("No leads found");
+    return;
+  }
+
+  const exportData = [];
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+
+    exportData.push({
+      "Student Name": data.studentName || "",
+      "Phone": data.phone || "",
+      "Status": data.status || "New",
+      "Agent": getAgentName(data.assignedTo) || "",
+      "Amount": data.amount || 0,
+      "FollowUp": data.followUpTime
+        ? data.followUpTime.toDate().toLocaleString()
+        : "",
+      "Created Date": data.createdAt
+        ? data.createdAt.toDate().toLocaleDateString()
+        : ""
+    });
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+  XLSX.writeFile(workbook, "Leads_Backup.xlsx");
+});
