@@ -1,113 +1,86 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Cleaner Panel</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-body{margin:0;font-family:Arial;background:#f4f6f9;}
-.header{background:#1e3c72;color:white;padding:15px;display:flex;justify-content:space-between;}
-.container{padding:25px;}
-.card{background:white;padding:25px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.1);max-width:500px;margin:auto;text-align:center;}
-button{padding:10px 15px;border:none;border-radius:6px;margin:5px;cursor:pointer;}
-select{padding:8px;margin-top:10px;}
-</style>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <title>Cleaner Panel</title>
+  <style>
+    body { font-family: Arial; background:#f4f6f9; padding:20px; }
+    .header { display:flex; justify-content:space-between; }
+    .card {
+      background:white;
+      padding:15px;
+      margin-top:15px;
+      border-radius:8px;
+      box-shadow:0 2px 5px rgba(0,0,0,0.1);
+    }
+    button {
+      padding:6px 10px;
+      margin-right:5px;
+      border:none;
+      border-radius:5px;
+      cursor:pointer;
+    }
+    .green { background:#28a745; color:white; }
+    .red { background:#dc3545; color:white; }
+  </style>
 </head>
-
 <body>
 
 <div class="header">
-<div>Cleaner Panel</div>
-<div id="userEmail"></div>
+  <h2>Cleaner Dashboard</h2>
+  <div id="userEmail"></div>
 </div>
 
-<div class="container">
-<div class="card" id="leadCard">
-<h3 id="studentName">Loading...</h3>
-<p id="studentPhone"></p>
-<button onclick="copyNumber()">Copy Number</button>
-<br>
-<select id="status">
-<option value="">Select Status</option>
-<option value="Verified">Verified</option>
-<option value="Switch Off">Switch Off</option>
-<option value="Wrong">Wrong</option>
-</select>
-<br>
-<button onclick="updateLead()">Submit</button>
-</div>
-</div>
+<div id="leads"></div>
 
-<script>
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, query, where, getDocs, updateDoc, doc } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB7xfwR2gBijRnVaasu_DZKuY8gLifimH0",
   authDomain: "dashboard-bd51c.firebaseapp.com",
   projectId: "dashboard-bd51c",
+  storageBucket: "dashboard-bd51c.firebasestorage.app",
+  messagingSenderId: "689809644516",
+  appId: "1:689809644516:web:75d6051b300983afb545f1"
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
 
-let currentLeadId = null;
-let currentPhone = null;
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-auth.onAuthStateChanged(user=>{
-    if(!user){ window.location.href="index.html"; return; }
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return location.href="index.html";
 
-    document.getElementById("userEmail").innerText = user.email;
+  document.getElementById("userEmail").innerText = user.email;
 
-    db.collection("users").doc(user.uid).get().then(doc=>{
-        if(!doc.exists || doc.data().role !== "cleaner"){
-            alert("Access Denied");
-            auth.signOut();
-            return;
-        }
-        loadLead();
-    });
+  const q = query(collection(db,"leads"), where("stage","==","verification"));
+  const snap = await getDocs(q);
+
+  snap.forEach(d=>{
+    const data = d.data();
+    document.getElementById("leads").innerHTML += `
+      <div class="card">
+        <b>${data.studentName}</b><br>
+        ${data.phone}<br><br>
+        <button class="green" onclick="updateStage('${d.id}','info')">Verified</button>
+        <button class="red" onclick="updateStage('${d.id}','closed')">Wrong</button>
+      </div>
+    `;
+  });
 });
 
-function loadLead(){
-    db.collection("leads")
-    .where("stage","==","verification")
-    .limit(1)
-    .get()
-    .then(snapshot=>{
-        if(snapshot.empty){
-            document.getElementById("leadCard").innerHTML="<h3>No Leads</h3>";
-            return;
-        }
-        const doc = snapshot.docs[0];
-        const d = doc.data();
-        currentLeadId = doc.id;
-        currentPhone = d.phone;
-        document.getElementById("studentName").innerText = d.studentName || "";
-        document.getElementById("studentPhone").innerText = d.phone || "";
-    });
-}
-
-function copyNumber(){
-    navigator.clipboard.writeText(currentPhone);
-}
-
-function updateLead(){
-    const status = document.getElementById("status").value;
-    if(!status) return alert("Select Status");
-
-    let updateData = { status: status };
-
-    if(status === "Verified") updateData.stage="info";
-    if(status === "Wrong") updateData.stage="closed";
-
-    db.collection("leads").doc(currentLeadId).update(updateData)
-    .then(()=> loadLead());
-}
+window.updateStage = async(id,stage)=>{
+  await updateDoc(doc(db,"leads",id),{
+    stage:stage,
+    updatedAt:new Date()
+  });
+  location.reload();
+};
 
 </script>
 </body>
